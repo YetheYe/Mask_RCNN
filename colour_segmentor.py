@@ -48,6 +48,11 @@ def find_bbox(file_name):
                     max_x = key1
                 if(key2>max_y):
                     max_y = key2
+    if (max_x>=im.size[0] or max([min_x, min_y, max_x, max_y])<1):
+        max_x = im.size[0]-1
+    if (max_y>=im.size[1] or max([min_x, min_y, max_x, max_y])<1):
+        max_y = im.size[1]-1
+     
     return min_y, max_y, min_x, max_x
 
 def find_object_masks(file_name, shapes=None):
