@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import glob
 import xml.etree.ElementTree as ET
 
-from colour_segmentor import find_bbox, find_object_masks
+from colour_segmentor import find_object_bbox_masks
 
 from config import Config
 import utils
@@ -92,7 +92,7 @@ class BagsDataset(utils.Dataset):
         
         pattern = re.compile(".*bot[0-9]*.png")
         
-        for images in glob.glob('Data/handbag_images/JPEGImages/*'):
+        for images in glob.glob('Data/handbag_images/JPEGImages/*.png'):
             
             shapes = []
             f = images.split('/')[-1]
@@ -105,7 +105,7 @@ class BagsDataset(utils.Dataset):
             if height>config.IMAGE_MAX_DIM or width>config.IMAGE_MAX_DIM:
                 continue
             
-            for obj in root.findfall('object'):
+            for obj in root.findall('object'):
             
                 cls = obj.find('name').text
                 bx = [int(obj.find('bndbox').find('ymin').text), int(obj.find('bndbox').find('xmin').text), int(obj.find('bndbox').find('ymax').text), int(obj.find('bndbox').find('xmax').text)]
@@ -117,6 +117,10 @@ class BagsDataset(utils.Dataset):
                 
                 shapes.append((cls, bx))
             
+            segments, bboxes = find_object_bbox_masks(images, shapes)
+            
+            shapes = [[target[0], bbox, segment] for target, bbox, segment in zip(shapes, segments, bboxes)]
+            
             if(pattern.match(images.split('/')[-1]) and part=='eval'):
                 self.add_image('bags', image_id = count, path = images, width=width, height=height, bags=shapes)
                 
@@ -126,11 +130,12 @@ class BagsDataset(utils.Dataset):
             count+=1
         
         if (part == 'train'):
-            for class_path in glob.glob('Data/bags/*'):
+            for class_path in glob.glob('Data/bags/*.jpg'):
                 for file_path in glob.glob(class_path+'/*'):
                     img = cv2.imread(file_path).shape
-                    bx = find_bbox(file_path)
-                    self.add_image('bags', image_id = count, path = file_path, width=img[1], height=img[0], bags=[[class_path.split('/')[-1], bx]])
+                    segments, bboxes = find_object_bbox_masks(file_path)
+                    
+                    self.add_image('bags', image_id = count, path = file_path, width=img[1], height=img[0], bags=[[class_path.split('/')[-1], segments[:,:,0], bboxes[:,0]]])
                     count+=1
 
     def load_image(self, image_id):
@@ -141,8 +146,6 @@ class BagsDataset(utils.Dataset):
         """
         info = self.image_info[image_id]
         path = info['path']
-        print (info['width'], info['height'])
-        print (cv2.imread(path)[...,::-1].shape)
         return cv2.imread(path)[...,::-1]        
 
     def image_reference(self, image_id):
@@ -156,8 +159,9 @@ class BagsDataset(utils.Dataset):
         info = self.image_info[image_id]
         shapes = info['bags']
         
-        masks = find_object_masks(info['path'], shapes)
+        print (shapes)
         
+        masks = np.array(shapes[1])
         # Map class names to class IDs.
         class_ids = np.array([self.class_names.index(s[0]) for s in shapes])
         return masks, class_ids.astype(np.int32)
@@ -166,6 +170,11 @@ class BagsDataset(utils.Dataset):
 dataset_train = BagsDataset()
 dataset_train.load_bags('train')
 dataset_train.prepare()
+
+print("Image Count: {}".format(len(dataset_train.image_ids)))
+print("Class Count: {}".format(dataset_train.num_classes))
+for i, info in enumerate(dataset_train.class_info):
+    print("{:3}. {:50}".format(i, info['name']))
 
 dataset_val = BagsDataset()
 dataset_val.load_bags('eval')
