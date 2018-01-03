@@ -15,8 +15,6 @@ import model as modellib
 import visualize
 from model import log
 
-#get_ipython().run_line_magic('matplotlib', 'inline')
-
 # Root directory of the project
 ROOT_DIR = os.getcwd()
 
@@ -28,12 +26,6 @@ COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
 # Download COCO trained weights from Releases if needed
 if not os.path.exists(COCO_MODEL_PATH):
     utils.download_trained_weights(COCO_MODEL_PATH)
-
-
-# ## Configurations
-
-# In[2]:
-
 
 class BagsConfig(Config):
     
@@ -48,12 +40,6 @@ class BagsConfig(Config):
     
 config = BagsConfig()
 config.display()
-
-
-# ## Notebook Preferences
-
-# In[3]:
-
 
 def get_ax(rows=1, cols=1, size=8):
     """Return a Matplotlib Axes array to be used in
@@ -74,6 +60,9 @@ class BagsDataset(utils.Dataset):
         """Generate the requested number of synthetic images.
         part: train/eval
         """
+
+        count = 0
+
         # Add classes
         
         classes = ['black_backpack', 'nine_west_bag', 'meixuan_brown_handbag', 'sm_bdrew_grey_handbag', 'wine_red_handbag', 'sm_bclarre_blush_crossbody', 'mk_brown_wrislet', 'black_plain_bag', 'lmk_brown_messenger_bag', 'sm_peach_backpack', 'black_ameligalanti', 'white_bag']
@@ -82,8 +71,40 @@ class BagsDataset(utils.Dataset):
         for i, c in enumerate(classes):
             self.add_class("bags", i+2, c)
         
-        for root in glob.glob('Data/handbag_images/'
+        pattern = re.compile("bot[0-9]*.png")
         
+        for images in glob.glob('Data/handbag_images/JPEGImages/'):
+            
+            shapes = []
+            f = images.rsplit('/')[1]
+            ann_path = images.split('JPEGImages')[0]+'Annotations/'+f[:-3]+'xml'
+                
+            tree = ET.parse(ann_path)
+            root = tree.getroot()
+	         
+	    img_path = 'handbag_images/'+root.find('path').text.split('/')[-2]+'/'+root.find('path').text.split('/')[-1]
+	    width, height = int(root.find('size').find('width').text), int(root.find('size').find('height').text)
+	    
+	    for obj in root.findall('object'):
+	    
+		cls = obj.find('name').text
+                bx = [float(obj.find('bndbox').find('xmin').text), float(obj.find('bndbox').find('xmax').text), float(obj.find('bndbox').find('ymin').text), float(obj.find('bndbox').find('ymax').text)]
+                shapes.append((cls, bx))
+
+            if(pattern.match(images.split('/')[-1]) and part=='eval'):
+                self.add_image('bags', image_id = count, path = img_path, width=width, height=height, bags=shapes)
+                
+            if(not pattern.match(images.split('/')[-1]) and part=='train'):
+                self.add_image('bags', image_id = count, path = img_path, width=width, height=height, bags=shapes)
+            
+            for class_path in glob.glob('Data/bags/*'):
+                for file_path in glob.glob(class_path):
+                        
+                        shapes = []
+                        img = cv2.imread(file_path)[...,::-1]
+                        height, width, _ = img.shape
+            count+=1
+
         # Add images
         # Generate random specifications of images (i.e. color and
         # list of shapes sizes and locations). This is more compact than
@@ -101,29 +122,22 @@ class BagsDataset(utils.Dataset):
         specs in image_info.
         """
         info = self.image_info[image_id]
-        bg_color = np.array(info['bg_color']).reshape([1, 1, 3])
-        image = np.ones([info['height'], info['width'], 3], dtype=np.uint8)
-        image = image * bg_color.astype(np.uint8)
-        for shape, color, dims in info['shapes']:
-            image = self.draw_shape(image, shape, dims, color)
-        return image
+        path = info['path']
+        return cv2.imread(path)[...,::-1]	    
 
     def image_reference(self, image_id):
-        """Return the shapes data of the image."""
+        """Return the bags data of the image."""
         info = self.image_info[image_id]
-        if info["source"] == "shapes":
-            return info["shapes"]
-        else:
-            super(self.__class__).image_reference(self, image_id)
+        return info["bags"]
 
     def load_mask(self, image_id):
         """Generate instance masks for shapes of the given image ID.
         """
         info = self.image_info[image_id]
-        shapes = info['shapes']
+        shapes = info['bags']
         count = len(shapes)
         mask = np.zeros([info['height'], info['width'], count], dtype=np.uint8)
-        for i, (shape, _, dims) in enumerate(info['shapes']):
+        for i, (shape, _, dims) in enumerate(info['bags']):
             mask[:, :, i:i+1] = self.draw_shape(mask[:, :, i:i+1].copy(),
                                                 shape, dims, 1)
         # Handle occlusions
