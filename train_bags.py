@@ -9,6 +9,7 @@ import cv2
 import matplotlib
 import matplotlib.pyplot as plt
 import glob
+import xml.etree.ElementTree as ET
 
 from colour_segmentor import find_bbox, find_object_masks
 
@@ -91,16 +92,21 @@ class BagsDataset(utils.Dataset):
         
         pattern = re.compile("bot[0-9]*.png")
         
-        for images in glob.glob('Data/handbag_images/JPEGImages/'):
+        print (glob.glob('Data/handbag_images/JPEGImages/*'))
+        
+        for images in glob.glob('Data/handbag_images/JPEGImages/*'):
             
             shapes = []
-            f = images.rsplit('/')[1]
+            f = images.split('/')[-1]
             ann_path = images.split('JPEGImages')[0]+'Annotations/'+f[:-3]+'xml'
-                
+            
             tree = ET.parse(ann_path)
             root = tree.getroot()         
             img_path = 'handbag_images/'+root.find('path').text.split('/')[-2]+'/'+root.find('path').text.split('/')[-1]
             width, height = int(root.find('size').find('width').text), int(root.find('size').find('height').text)
+            
+            if height>config.IMAGE_MAX_DIM or width>config.IMAGE_MAX_DIM:
+                continue
             
             for obj in root.findall('object'):
             
@@ -118,7 +124,7 @@ class BagsDataset(utils.Dataset):
         
         if (part == 'train'):
             for class_path in glob.glob('Data/bags/*'):
-                for file_path in glob.glob(class_path):
+                for file_path in glob.glob(class_path+'/*'):
                     img = cv2.imread(file_path).shape
                     self.add_image('bags', image_id = count, path = file_path, width=img[1], height=img[0], bags=[[class_path.split('/')[-1], [0, img[1], 0, img[0]]]])
                     count+=1
@@ -156,7 +162,7 @@ dataset_train.load_bags('train')
 dataset_train.prepare()
 
 dataset_val = BagsDataset()
-dataset_val.load_shapes('eval')
+dataset_val.load_bags('eval')
 dataset_val.prepare()
 
 model = None
