@@ -51,7 +51,7 @@ def find_bbox(file_name):
                     max_y = key2
     return min_y, max_y, min_x, max_x
 
-def find_mask(file_name, shapes=None):
+def find_object_masks(file_name, shapes=None):
 
     im = Image.open(file_name)
     sorte = im.getcolors(im.size[0]*im.size[1])
