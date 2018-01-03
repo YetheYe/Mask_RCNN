@@ -7,7 +7,6 @@ import math
 from cv2 import moveWindow
 from scipy import ndimage
 from collections import Counter
-import webcolors
 
 from matplotlib import patches
 import matplotlib.pyplot as plt
@@ -76,17 +75,21 @@ def find_object_masks(file_name, shapes=None):
     
     segments = []
     
-    shapes = [['dummy_class', [0, im.size[0], 0, im.size[1]]]] if shapes is None else shapes
-    
     for _, bbox in shapes:
+        
+        if (max(bbox)<1):
+            if(len(shapes)==1):
+                bbox = [0, im.size[0], 0, im.size[1]]
+            else:
+                continue
         
         segment = np.zeros((np.shape(np.array(im))[0], np.shape(np.array(im))[1]))
         
-        for key1, vals in enumerate(np.array(im)[bbox[0]:bbox[1]]):
-            for key2, rgb in enumerate(vals[bbox[2]:bbox[3]]):
+        for key1, vals in enumerate(np.array(im)[int(bbox[0]):int(bbox[1])]):
+            for key2, rgb in enumerate(vals[int(bbox[2]):int(bbox[3])]):
                 if(sum(abs(rgb-one))<700):
-                    segment[key1+bbox[0]][key2+bbox[2]]=1
+                    segment[key1+int(bbox[0])][key2+int(bbox[2])]=1
         segments.append(segment)            
     
-    return segments
+    return np.array(segments, dtype=np.int32)
 

@@ -112,7 +112,6 @@ class BagsDataset(utils.Dataset):
                 shapes.append((cls, bx))
             
             if(pattern.match(images.split('/')[-1]) and part=='eval'):
-                print (images)
                 self.add_image('bags', image_id = count, path = images, width=width, height=height, bags=shapes)
                 
             if(not pattern.match(images.split('/')[-1]) and part=='train'):
@@ -135,7 +134,6 @@ class BagsDataset(utils.Dataset):
         """
         info = self.image_info[image_id]
         path = info['path']
-        print (path)
         return cv2.imread(path)[...,::-1]        
 
     def image_reference(self, image_id):
