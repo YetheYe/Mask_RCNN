@@ -1160,15 +1160,19 @@ def load_image_gt(dataset, config, image_id, augment=False,
     """
     # Load image and mask
     image = dataset.load_image(image_id)
+    
     mask, class_ids = dataset.load_mask(image_id)
     shape = image.shape
+    #print (shape)
     image, window, scale, padding = utils.resize_image(
         image,
         min_dim=config.IMAGE_MIN_DIM,
         max_dim=config.IMAGE_MAX_DIM,
         padding=config.IMAGE_PADDING)
     mask = utils.resize_mask(mask, scale, padding)
-
+    
+    #print (image.shape, mask.shape)
+    
     # Random horizontal flips.
     if augment:
         if random.randint(0, 1):
@@ -1193,7 +1197,9 @@ def load_image_gt(dataset, config, image_id, augment=False,
 
     # Image meta data
     image_meta = compose_image_meta(image_id, shape, window, active_class_ids)
-
+    
+    print (image_meta)
+    
     return image, image_meta, class_ids, bbox, mask
 
 

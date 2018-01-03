@@ -105,10 +105,16 @@ class BagsDataset(utils.Dataset):
             if height>config.IMAGE_MAX_DIM or width>config.IMAGE_MAX_DIM:
                 continue
             
-            for obj in root.findall('object'):
+            for obj in root.findfall('object'):
             
                 cls = obj.find('name').text
-                bx = [float(obj.find('bndbox').find('xmin').text), float(obj.find('bndbox').find('xmax').text), float(obj.find('bndbox').find('ymin').text), float(obj.find('bndbox').find('ymax').text)]
+                bx = [int(obj.find('bndbox').find('ymin').text), int(obj.find('bndbox').find('xmin').text), int(obj.find('bndbox').find('ymax').text), int(obj.find('bndbox').find('xmax').text)]
+                
+                if (bx[3]>=width or max(bx)<1):
+                    bx[3] = width-1
+                if (bx[2]>=height or max(bx)<1):
+                    bx[2] = height-1
+                
                 shapes.append((cls, bx))
             
             if(pattern.match(images.split('/')[-1]) and part=='eval'):
@@ -123,7 +129,8 @@ class BagsDataset(utils.Dataset):
             for class_path in glob.glob('Data/bags/*'):
                 for file_path in glob.glob(class_path+'/*'):
                     img = cv2.imread(file_path).shape
-                    self.add_image('bags', image_id = count, path = file_path, width=img[1], height=img[0], bags=[[class_path.split('/')[-1], [0, img[1], 0, img[0]]]])
+                    bx = find_bbox(file_path)
+                    self.add_image('bags', image_id = count, path = file_path, width=img[1], height=img[0], bags=[[class_path.split('/')[-1], bx]])
                     count+=1
 
     def load_image(self, image_id):
@@ -134,6 +141,8 @@ class BagsDataset(utils.Dataset):
         """
         info = self.image_info[image_id]
         path = info['path']
+        print (info['width'], info['height'])
+        print (cv2.imread(path)[...,::-1].shape)
         return cv2.imread(path)[...,::-1]        
 
     def image_reference(self, image_id):
