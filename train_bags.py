@@ -45,7 +45,7 @@ class BagsConfig(Config):
     # Give the configuration a recognizable name
     NAME = "bags"
 
-    GPU_COUNT = 3
+    GPU_COUNT = 1
     IMAGES_PER_GPU = 2
     NUM_CLASSES = 1 + 12 + 1  # background [index: 0] + 1 person class tranfer from COCO [index: 1] + 12 classes
     STEPS_PER_EPOCH = 3000
@@ -90,9 +90,7 @@ class BagsDataset(utils.Dataset):
         for i, c in enumerate(classes):
             self.add_class("bags", i+2, c)
         
-        pattern = re.compile("bot[0-9]*.png")
-        
-        print (glob.glob('Data/handbag_images/JPEGImages/*'))
+        pattern = re.compile(".*bot[0-9]*.png")
         
         for images in glob.glob('Data/handbag_images/JPEGImages/*'):
             
@@ -102,7 +100,6 @@ class BagsDataset(utils.Dataset):
             
             tree = ET.parse(ann_path)
             root = tree.getroot()         
-            img_path = 'handbag_images/'+root.find('path').text.split('/')[-2]+'/'+root.find('path').text.split('/')[-1]
             width, height = int(root.find('size').find('width').text), int(root.find('size').find('height').text)
             
             if height>config.IMAGE_MAX_DIM or width>config.IMAGE_MAX_DIM:
@@ -113,12 +110,13 @@ class BagsDataset(utils.Dataset):
                 cls = obj.find('name').text
                 bx = [float(obj.find('bndbox').find('xmin').text), float(obj.find('bndbox').find('xmax').text), float(obj.find('bndbox').find('ymin').text), float(obj.find('bndbox').find('ymax').text)]
                 shapes.append((cls, bx))
-
+            
             if(pattern.match(images.split('/')[-1]) and part=='eval'):
-                self.add_image('bags', image_id = count, path = img_path, width=width, height=height, bags=shapes)
+                print (images)
+                self.add_image('bags', image_id = count, path = images, width=width, height=height, bags=shapes)
                 
             if(not pattern.match(images.split('/')[-1]) and part=='train'):
-                self.add_image('bags', image_id = count, path = img_path, width=width, height=height, bags=shapes)
+                self.add_image('bags', image_id = count, path = images, width=width, height=height, bags=shapes)
             
             count+=1
         
@@ -137,6 +135,7 @@ class BagsDataset(utils.Dataset):
         """
         info = self.image_info[image_id]
         path = info['path']
+        print (path)
         return cv2.imread(path)[...,::-1]        
 
     def image_reference(self, image_id):
@@ -213,12 +212,12 @@ if (args.command=='train'):
                 epochs=10,
                 layers='all')
 
-elif args.command == "evaluate":
+elif args.command == "eval":
     
     # Validation dataset
     
     evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))
-    image_ids = random.choice(dataset_val.image_ids, 35)
+    image_ids = random.choice(dataset_val.image_ids, 10)
     for image_id in image_ids:
         image, image_meta, gt_class_id, gt_bbox, gt_mask =        modellib.load_image_gt(dataset_val, inference_config,
                                image_id, use_mini_mask=False)
