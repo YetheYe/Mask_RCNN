@@ -82,12 +82,12 @@ class BagsDataset(utils.Dataset):
             tree = ET.parse(ann_path)
             root = tree.getroot()
 	         
-	    img_path = 'handbag_images/'+root.find('path').text.split('/')[-2]+'/'+root.find('path').text.split('/')[-1]
-	    width, height = int(root.find('size').find('width').text), int(root.find('size').find('height').text)
-	    
-	    for obj in root.findall('object'):
-	    
-		cls = obj.find('name').text
+	        img_path = 'handbag_images/'+root.find('path').text.split('/')[-2]+'/'+root.find('path').text.split('/')[-1]
+	        width, height = int(root.find('size').find('width').text), int(root.find('size').find('height').text)
+	        
+	        for obj in root.findall('object'):
+	        
+		        cls = obj.find('name').text
                 bx = [float(obj.find('bndbox').find('xmin').text), float(obj.find('bndbox').find('xmax').text), float(obj.find('bndbox').find('ymin').text), float(obj.find('bndbox').find('ymax').text)]
                 shapes.append((cls, bx))
 
@@ -135,16 +135,9 @@ class BagsDataset(utils.Dataset):
         """
         info = self.image_info[image_id]
         shapes = info['bags']
-        count = len(shapes)
-        mask = np.zeros([info['height'], info['width'], count], dtype=np.uint8)
-        for i, (shape, _, dims) in enumerate(info['bags']):
-            mask[:, :, i:i+1] = self.draw_shape(mask[:, :, i:i+1].copy(),
-                                                shape, dims, 1)
-        # Handle occlusions
-        occlusion = np.logical_not(mask[:, :, -1]).astype(np.uint8)
-        for i in range(count-2, -1, -1):
-            mask[:, :, i] = mask[:, :, i] * occlusion
-            occlusion = np.logical_and(occlusion, np.logical_not(mask[:, :, i]))
+        
+        masks = 
+        
         # Map class names to class IDs.
         class_ids = np.array([self.class_names.index(s[0]) for s in shapes])
         return mask, class_ids.astype(np.int32)
