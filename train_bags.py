@@ -8,6 +8,7 @@ import numpy as np
 import cv2
 import matplotlib
 import matplotlib.pyplot as plt
+import glob
 
 from colour_segmentor import find_bbox, find_object_masks
 
@@ -22,12 +23,8 @@ import argparse
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='Train Mask R-CNN on MS COCO.')
 parser.add_argument("command", metavar="<command>", help="'train' or 'eval' on MS COCO")
-parser.add_argument('--dataset', required=True, metavar="/path/to/coco/", help='Directory of the MS-COCO dataset')
-parser.add_argument('--year', required=False, default=DEFAULT_DATASET_YEAR, metavar="<year>", help='Year of the MS-COCO dataset (2014 or 2017) (default=2014)')
 parser.add_argument('--model', required=True, metavar="/path/to/weights.h5", help="Path to weights .h5 file or 'coco'")
-parser.add_argument('--logs', required=False, default=DEFAULT_LOGS_DIR, metavar="/path/to/logs/", help='Logs and checkpoints directory (default=logs/)')
-parser.add_argument('--limit', required=False, default=500, metavar="<image count>", help='Images to use for evaluation (default=500)')
-parser.add_argument('--download', required=False, default=False, metavar="<True|False>", help='Automatically download and unzip MS-COCO files (default=False)', type=bool)
+parser.add_argument('--logs', required=False, default='log/', metavar="/path/to/logs/", help='Logs and checkpoints directory (default=logs/)')
 args = parser.parse_args()
 
 # Root directory of the project
@@ -56,7 +53,7 @@ class BagsConfig(Config):
 config = BagsConfig()
 config.display()
 
-class InferenceConfig(ShapesConfig):
+class InferenceConfig(BagsConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
 
@@ -101,14 +98,13 @@ class BagsDataset(utils.Dataset):
             ann_path = images.split('JPEGImages')[0]+'Annotations/'+f[:-3]+'xml'
                 
             tree = ET.parse(ann_path)
-            root = tree.getroot()
-	         
-	        img_path = 'handbag_images/'+root.find('path').text.split('/')[-2]+'/'+root.find('path').text.split('/')[-1]
-	        width, height = int(root.find('size').find('width').text), int(root.find('size').find('height').text)
-	        
-	        for obj in root.findall('object'):
-	        
-		        cls = obj.find('name').text
+            root = tree.getroot()         
+            img_path = 'handbag_images/'+root.find('path').text.split('/')[-2]+'/'+root.find('path').text.split('/')[-1]
+            width, height = int(root.find('size').find('width').text), int(root.find('size').find('height').text)
+            
+            for obj in root.findall('object'):
+            
+                cls = obj.find('name').text
                 bx = [float(obj.find('bndbox').find('xmin').text), float(obj.find('bndbox').find('xmax').text), float(obj.find('bndbox').find('ymin').text), float(obj.find('bndbox').find('ymax').text)]
                 shapes.append((cls, bx))
 
@@ -123,7 +119,8 @@ class BagsDataset(utils.Dataset):
         if (part == 'train'):
             for class_path in glob.glob('Data/bags/*'):
                 for file_path in glob.glob(class_path):
-                    self.add_image('bags', image_id = count, path = file_path, width=cv2.imread(file_path).shape[1], height=cv2.imread(file_path).shape[0], bags=[class_path.split('/')[-1], [0, cv2.imread(file_path).shape[1], 0, cv2.imread(file_path).shape[1]])
+                    img = cv2.imread(file_path).shape
+                    self.add_image('bags', image_id = count, path = file_path, width=img[1], height=img[0], bags=[[class_path.split('/')[-1], [0, img[1], 0, img[0]]]])
                     count+=1
 
     def load_image(self, image_id):
@@ -134,7 +131,7 @@ class BagsDataset(utils.Dataset):
         """
         info = self.image_info[image_id]
         path = info['path']
-        return cv2.imread(path)[...,::-1]	    
+        return cv2.imread(path)[...,::-1]        
 
     def image_reference(self, image_id):
         """Return the bags data of the image."""
