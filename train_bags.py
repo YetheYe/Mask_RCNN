@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import glob
 import xml.etree.ElementTree as ET
 
-from colour_segmentor import find_object_bbox_masks
+from colour_segmentor import find_object_bbox_masks, get_image_masks
 
 from config import Config
 import utils
@@ -157,14 +157,8 @@ class BagsDataset(utils.Dataset):
         """Generate instance masks for shapes of the given image ID.
         """
         info = self.image_info[image_id]
-        shapes = info['bags']
-        
-        print (shapes)
-        
-        masks = np.array(shapes[1])
-        # Map class names to class IDs.
         class_ids = np.array([self.class_names.index(s[0]) for s in shapes])
-        return masks, class_ids.astype(np.int32)
+        return get_image_masks(info['path']), class_ids.astype(np.int32)
 
 # Training dataset
 dataset_train = BagsDataset()
