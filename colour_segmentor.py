@@ -126,18 +126,15 @@ def return_mask(image_path, bbox, bag_type):
         one = two
         two = temp
     
-    if('black' not in bag_type):
-        for key1, vals in enumerate(np.array(im)):
-            for key2, rgb in enumerate(vals):
-                if (key1<mask.shape[0] and key2<mask.shape[1]):
-                    if(sum(abs(rgb-one))<700):
-                        mask[key1][key2]=255
-    elif('black' in bag_type):
-        for key1, vals in enumerate(np.array(im)):
-            for key2, rgb in enumerate(vals):
-                if (key1<mask.shape[0] and key2<mask.shape[1]):
-                    if(sum(abs(rgb-one))>700):
-                        mask[key1][key2]=255
+    for key1, vals in enumerate(np.array(im)):
+        for key2, rgb in enumerate(vals):
+            if (key1<mask.shape[0] and key2<mask.shape[1]):
+                if(sum(abs(rgb-one))<575):
+                    mask[key1][key2]=255
+    
+    print (np.count_nonzero(mask)/(im.size[0]*im.size[1]))
+    if ((np.count_nonzero(mask)/(orig_im.size[0]*orig_im.size[1]))<0.025):
+        mask = np.ones((im.size[1], im.size[0]), dtype=np.uint8)*255
     
     #print (mask.shape)
     height, width = orig_im.size[:2]
@@ -178,8 +175,9 @@ def get_image_masks(image_path):
 
 def test_time():
     tic = time.time()
-
-    get_image_masks('/home/hans/Desktop/Vision Internship/github/Mask_RCNN/Data/handbag_images/JPEGImages/bot3.png')
+    
+    for f in glob.glob(os.getcwd()+'/Data/handbag_images/JPEGImages/*.png'):
+        get_image_masks(f)
 
     #seg, bb = find_object_bbox_masks(os.getcwd()+'/Data/bags/black_ameligalanti/2017-L7-CK2-20780452-01-1.jpg')
 
