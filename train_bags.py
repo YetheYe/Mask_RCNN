@@ -24,7 +24,7 @@ import argparse
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='Train Mask R-CNN on MS COCO.')
 parser.add_argument("command", metavar="<command>", help="'train' or 'eval' on MS COCO")
-parser.add_argument('--model', required=True, metavar="/path/to/weights.h5", help="Path to weights .h5 file or 'coco'")
+parser.add_argument('--model', required=False, metavar="/path/to/weights.h5", help="Path to weights .h5 file or 'coco'")
 parser.add_argument('--logs', required=False, default='log/', metavar="/path/to/logs/", help='Logs and checkpoints directory (default=logs/)')
 args = parser.parse_args()
 
@@ -92,7 +92,7 @@ class BagsDataset(utils.Dataset):
         
         pattern = re.compile(".*bot[0-9]*.png")
         
-        for images in glob.glob('Data/handbag_images/JPEGImages/*.png'):
+        for images in glob.glob(os.getcwd()+'/Data/handbag_images/JPEGImages/*.png'):
             
             shapes = []
             f = images.split('/')[-1]
@@ -188,7 +188,7 @@ else:
     model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
 
 # Which weights to start with?
-init_with = "coco"  # imagenet, coco, or last
+init_with = "imagenet"  # imagenet, coco, or last
 
 if init_with == "imagenet":
     model.load_weights(model.get_imagenet_weights(), by_name=True)
