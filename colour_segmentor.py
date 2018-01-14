@@ -13,7 +13,7 @@ import time
 from matplotlib import patches
 import matplotlib.pyplot as plt
 
-fig = plt.figure()
+#fig = plt.figure()
 
 def find_object_bbox_masks(file_name, shapes=None):
 
@@ -132,7 +132,7 @@ def return_mask(image_path, bbox, bag_type):
                 if(sum(abs(rgb-one))<575):
                     mask[key1][key2]=255
     
-    print (np.count_nonzero(mask)/(im.size[0]*im.size[1]))
+    #print (np.count_nonzero(mask)/(im.size[0]*im.size[1]))
     if ((np.count_nonzero(mask)/(orig_im.size[0]*orig_im.size[1]))<0.025):
         mask = np.ones((im.size[1], im.size[0]), dtype=np.uint8)*255
     
@@ -152,26 +152,30 @@ def get_image_masks(image_path):
     
     annot_path = split[0]+'Annotations'+split[1][:-3]+'xml'
     
-    print (annot_path)
+    #print (annot_path)
     
     tree = ET.parse(annot_path)
     root = tree.getroot()         
     
     num_masks, width, height = len(root.findall('object')), int(root.find('size').find('width').text), int(root.find('size').find('height').text)
     
-    image_masks = np.zeros((height, width, num_masks), dtype=np.uint8)
+    image_masks, classes = np.zeros((height, width, num_masks), dtype=np.uint8), []
     
     for i, obj in enumerate(root.findall('object')):
     
         cls = obj.find('name').text
         bx = [int(obj.find('bndbox').find('ymin').text), int(obj.find('bndbox').find('xmin').text), int(obj.find('bndbox').find('ymax').text), int(obj.find('bndbox').find('xmax').text)]
         image_masks[:,:,i] = return_mask(image_path, np.array(bx), cls)
+        classes.append(cls)
     
+    return image_masks, classes
+    '''
     orig_im = Image.open(image_path)
+    
     for i in range(image_masks.shape[-1]):
         mask = Image.fromarray(np.dstack((image_masks[...,i], image_masks[...,i], image_masks[...,i])), 'RGB')
         Image.blend(orig_im, mask, 0.75).show()
-    
+    '''
 
 def test_time():
     tic = time.time()
@@ -185,4 +189,4 @@ def test_time():
 
     print (time.time()-tic)
 
-test_time()
+#test_time()

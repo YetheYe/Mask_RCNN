@@ -22,8 +22,8 @@ from model import log
 import argparse
 
 # Parse command line arguments
-parser = argparse.ArgumentParser(description='Train Mask R-CNN on MS COCO.')
-parser.add_argument("command", metavar="<command>", help="'train' or 'eval' on MS COCO")
+parser = argparse.ArgumentParser(description='Train Mask R-CNN on Custom Bags Dataset.')
+parser.add_argument("command", metavar="<command>", help="'train' or 'eval'")
 parser.add_argument('--model', required=False, metavar="/path/to/weights.h5", help="Path to weights .h5 file or 'coco'")
 parser.add_argument('--logs', required=False, default='log/', metavar="/path/to/logs/", help='Logs and checkpoints directory (default=logs/)')
 args = parser.parse_args()
@@ -47,7 +47,7 @@ class BagsConfig(Config):
 
     GPU_COUNT = 1
     IMAGES_PER_GPU = 2
-    NUM_CLASSES = 1 + 12 + 1  # background [index: 0] + 1 person class tranfer from COCO [index: 1] + 12 classes
+    NUM_CLASSES = 1 + 12  # background [index: 0] + 12 classes
     STEPS_PER_EPOCH = 3000
     VALIDATION_STEPS = 100
     
@@ -86,23 +86,22 @@ class BagsDataset(utils.Dataset):
 
         # Add classes
         
-        self.add_class("bags", 1, "person")
         for i, c in enumerate(classes):
-            self.add_class("bags", i+2, c)
+            self.add_class("bags", i+1, c)
         
         pattern = re.compile(".*bot[0-9]*.png")
         
         for images in glob.glob(os.getcwd()+'/Data/handbag_images/JPEGImages/*.png'):
             
-            shapes = []
-            f = images.split('/')[-1]
-            ann_path = images.split('JPEGImages')[0]+'Annotations/'+f[:-3]+'xml'
+            f = images.split('JPEGImages')
+            ann_path = f[0]+'Annotations'+f[1][:-3]+'xml'
             
             tree = ET.parse(ann_path)
             root = tree.getroot()         
             width, height = int(root.find('size').find('width').text), int(root.find('size').find('height').text)
             
-            if height>config.IMAGE_MAX_DIM or width>config.IMAGE_MAX_DIM:
+            '''
+            if height>config.IMAGE_MAX_DIM or width>config.IMAGE_MAX_DIM or height<config.IMAGE_MIN_DIM or width<config.IMAGE_MIN_DIM:
                 continue
             
             for obj in root.findall('object'):
@@ -116,19 +115,20 @@ class BagsDataset(utils.Dataset):
                     bx[2] = height-1
                 
                 shapes.append((cls, bx))
+            '''
             
-            segments, bboxes = find_object_bbox_masks(images, shapes)
+            #segments, bboxes = find_object_bbox_masks(images, shapes)
             
-            shapes = [[target[0], bbox, segment] for target, bbox, segment in zip(shapes, segments, bboxes)]
+            #shapes = [[target[0], bbox, segment] for target, bbox, segment in zip(shapes, segments, bboxes)]
             
             if(pattern.match(images.split('/')[-1]) and part=='eval'):
-                self.add_image('bags', image_id = count, path = images, width=width, height=height, bags=shapes)
+                self.add_image('bags', image_id = count, path = images, width=width, height=height)
                 
             if(not pattern.match(images.split('/')[-1]) and part=='train'):
-                self.add_image('bags', image_id = count, path = images, width=width, height=height, bags=shapes)
+                self.add_image('bags', image_id = count, path = images, width=width, height=height)
             
             count+=1
-        
+        '''
         if (part == 'train'):
             for class_path in glob.glob('Data/bags/*.jpg'):
                 for file_path in glob.glob(class_path+'/*'):
@@ -136,29 +136,21 @@ class BagsDataset(utils.Dataset):
                     segments, bboxes = find_object_bbox_masks(file_path)
                     
                     self.add_image('bags', image_id = count, path = file_path, width=img[1], height=img[0], bags=[[class_path.split('/')[-1], segments[:,:,0], bboxes[:,0]]])
-                    count+=1
-
-    def load_image(self, image_id):
-        """Generate an image from the specs of the given image ID.
-        Typically this function loads the image from a file, but
-        in this case it generates the image on the fly from the
-        specs in image_info.
-        """
-        info = self.image_info[image_id]
-        path = info['path']
-        return cv2.imread(path)[...,::-1]        
+                    count+=1       
+        '''
 
     def image_reference(self, image_id):
         """Return the bags data of the image."""
         info = self.image_info[image_id]
-        return info["bags"]
+        return info["path"]
 
     def load_mask(self, image_id):
         """Generate instance masks for shapes of the given image ID.
         """
         info = self.image_info[image_id]
-        class_ids = np.array([self.class_names.index(s[0]) for s in shapes])
-        return get_image_masks(info['path']), class_ids.astype(np.int32)
+        image_masks, classes = get_image_masks(info['path'])
+        class_ids = np.array([self.class_names.index(s) for s in classes])
+        return image_masks, class_ids.astype(np.int32)
 
 # Training dataset
 dataset_train = BagsDataset()
