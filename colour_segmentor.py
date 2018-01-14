@@ -129,7 +129,9 @@ def return_mask(image_path, bbox, bag_type):
     for key1, vals in enumerate(np.array(im)):
         for key2, rgb in enumerate(vals):
             if (key1<mask.shape[0] and key2<mask.shape[1]):
-                if(sum(abs(rgb-one))<575):
+                if(sum(abs(rgb-one))<575 and 'black' not in bag_type):
+                    mask[key1][key2]=255
+                elif(sum(abs(rgb-one))>575 and 'black' in bag_type):
                     mask[key1][key2]=255
     
     #print (np.count_nonzero(mask)/(im.size[0]*im.size[1]))
@@ -168,14 +170,13 @@ def get_image_masks(image_path):
         image_masks[:,:,i] = return_mask(image_path, np.array(bx), cls)
         classes.append(cls)
     
-    return image_masks, classes
-    '''
     orig_im = Image.open(image_path)
     
     for i in range(image_masks.shape[-1]):
         mask = Image.fromarray(np.dstack((image_masks[...,i], image_masks[...,i], image_masks[...,i])), 'RGB')
         Image.blend(orig_im, mask, 0.75).show()
-    '''
+    
+    return image_masks, classes
 
 def test_time():
     tic = time.time()
@@ -189,4 +190,4 @@ def test_time():
 
     print (time.time()-tic)
 
-#test_time()
+test_time()

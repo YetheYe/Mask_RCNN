@@ -89,6 +89,8 @@ class BagsDataset(utils.Dataset):
         for i, c in enumerate(classes):
             self.add_class("bags", i+1, c)
         
+        # Add train/val images
+        
         pattern = re.compile(".*bot[0-9]*.png")
         
         for images in glob.glob(os.getcwd()+'/Data/handbag_images/JPEGImages/*.png'):
@@ -99,27 +101,6 @@ class BagsDataset(utils.Dataset):
             tree = ET.parse(ann_path)
             root = tree.getroot()         
             width, height = int(root.find('size').find('width').text), int(root.find('size').find('height').text)
-            
-            '''
-            if height>config.IMAGE_MAX_DIM or width>config.IMAGE_MAX_DIM or height<config.IMAGE_MIN_DIM or width<config.IMAGE_MIN_DIM:
-                continue
-            
-            for obj in root.findall('object'):
-            
-                cls = obj.find('name').text
-                bx = [int(obj.find('bndbox').find('ymin').text), int(obj.find('bndbox').find('xmin').text), int(obj.find('bndbox').find('ymax').text), int(obj.find('bndbox').find('xmax').text)]
-                
-                if (bx[3]>=width or max(bx)<1):
-                    bx[3] = width-1
-                if (bx[2]>=height or max(bx)<1):
-                    bx[2] = height-1
-                
-                shapes.append((cls, bx))
-            '''
-            
-            #segments, bboxes = find_object_bbox_masks(images, shapes)
-            
-            #shapes = [[target[0], bbox, segment] for target, bbox, segment in zip(shapes, segments, bboxes)]
             
             if(pattern.match(images.split('/')[-1]) and part=='eval'):
                 self.add_image('bags', image_id = count, path = images, width=width, height=height)
