@@ -3,7 +3,7 @@ Mask R-CNN
 The main Mask R-CNN model implemenetation.
 
 Copyright (c) 2017 Matterport, Inc.
-Licensed under the MIT License (see LICENSE for details)
+Licensed under  the MIT License (see LICENSE for details)
 Written by Waleed Abdulla
 """
 
@@ -1182,7 +1182,7 @@ def load_image_gt(dataset, config, image_id, augment=False,
     # Bounding boxes. Note that some boxes might be all zeros
     # if the corresponding mask got cropped out.
     # bbox: [num_instances, (y1, x1, y2, x2)]
-    bbox = utils.extract_bboxes(mask)
+    bbox = utils.extract_bboxes(dataset.image_info[image_id]["path"])
 
     # Active classes
     # Different datasets have different classes, so track the

@@ -47,7 +47,7 @@ class BagsConfig(Config):
     NAME = "bags"
 
     GPU_COUNT = 1
-    IMAGES_PER_GPU = 2
+    IMAGES_PER_GPU = 1
     NUM_CLASSES = 1 + 12  # background [index: 0] + 12 classes
     STEPS_PER_EPOCH = 3000
     VALIDATION_STEPS = 100
@@ -83,7 +83,7 @@ class BagsDataset(utils.Dataset):
 
         classes = ['black_backpack', 'nine_west_bag', 'meixuan_brown_handbag', 'sm_bdrew_grey_handbag', 'wine_red_handbag', 'sm_bclarre_blush_crossbody', 'mk_brown_wrislet', 'black_plain_bag', 'lmk_brown_messenger_bag', 'sm_peach_backpack', 'black_ameligalanti', 'white_bag']
         
-        count = 0
+        count = 1
 
         # Add classes
         
@@ -102,6 +102,9 @@ class BagsDataset(utils.Dataset):
             tree = ET.parse(ann_path)
             root = tree.getroot()         
             width, height = int(root.find('size').find('width').text), int(root.find('size').find('height').text)
+            
+            if height>config.IMAGE_MAX_DIM or width>config.IMAGE_MAX_DIM or height<config.IMAGE_MIN_DIM or width<config.IMAGE_MIN_DIM:
+                continue
             
             if(pattern.match(images.split('/')[-1]) and part=='eval'):
                 self.add_image('bags', image_id = count, path = images, width=width, height=height)

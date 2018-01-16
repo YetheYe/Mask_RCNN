@@ -18,6 +18,7 @@ import skimage.color
 import skimage.io
 import urllib.request
 import shutil
+import xml.etree.ElementTree as ET
 
 # URL from which to download the latest COCO trained weights
 COCO_MODEL_URL = "https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5"
@@ -27,12 +28,12 @@ COCO_MODEL_URL = "https://github.com/matterport/Mask_RCNN/releases/download/v2.0
 #  Bounding Boxes
 ############################################################
 
-def extract_bboxes(mask):
+def extract_bboxes(path):
     """Compute bounding boxes from masks.
     mask: [height, width, num_instances]. Mask pixels are either 1 or 0.
 
     Returns: bbox array [num_instances, (y1, x1, y2, x2)].
-    """
+        
     boxes = np.zeros([mask.shape[-1], 4], dtype=np.int32)
     for i in range(mask.shape[-1]):
         m = mask[:, :, i]
@@ -50,7 +51,21 @@ def extract_bboxes(mask):
             # resizing or cropping. Set bbox to zeros
             x1, x2, y1, y2 = 0, 0, 0, 0
         boxes[i] = np.array([y1, x1, y2, x2])
-    return boxes.astype(np.int32)
+    """
+    
+    split = path.split('JPEGImages')
+    ann_path = split[0]+'Annotations'+split[1][:-3]+'xml'
+
+    tree = ET.parse(ann_path)
+    root = tree.getroot() 
+    
+    boxes = np.zeros([len(root.findall('object')), 4], dtype=np.int32)
+    
+    for i, obj in enumerate(root.findall('object')):
+    
+        boxes[i] = np.array([int(obj.find('bndbox').find('ymin').text), int(obj.find('bndbox').find('xmin').text), int(obj.find('bndbox').find('ymax').text), int(obj.find('bndbox').find('xmax').text)])
+        
+    return np.array(boxes, dtype=np.int32)
 
 
 def compute_iou(box, boxes, box_area, boxes_area):
@@ -272,7 +287,8 @@ class Dataset(object):
               classes from different datasets to the same class ID.
         """
         def clean_name(name):
-            """Returns a shorter version of object names for cleaner display."""
+            """Returns a shorter version of object
+             names for cleaner display."""
             return ",".join(name.split(",")[:1])
 
         # Build (or rebuild) everything else from the info dicts.
