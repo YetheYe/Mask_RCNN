@@ -18,6 +18,8 @@ import matplotlib.lines as lines
 from matplotlib.patches import Polygon
 import IPython.display
 
+import cv2
+
 import utils
 
 
@@ -65,6 +67,7 @@ def random_colors(N, bright=True):
 def apply_mask(image, mask, color, alpha=0.5):
     """Apply the given mask to the image.
     """
+    color = np.array([color[2], color[1], color[0]])
     for c in range(3):
         image[:, :, c] = np.where(mask == 1,
                                   image[:, :, c] *
@@ -84,39 +87,30 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     scores: (optional) confidence scores for each box
     figsize: (optional) the size of the image.
     """
+    
     # Number of instances
     N = boxes.shape[0]
-    if not N:
-        print("\n*** No instances to display *** \n")
-    else:
-        assert boxes.shape[0] == masks.shape[-1] == class_ids.shape[0]
-
-    if not ax:
-        _, ax = plt.subplots(1, figsize=figsize)
-
+    
     # Generate random colors
     colors = random_colors(N)
 
     # Show area outside image boundaries.
     height, width = image.shape[:2]
-    ax.set_ylim(height + 10, -10)
-    ax.set_xlim(-10, width + 10)
-    ax.axis('off')
-    ax.set_title(title)
-
-    masked_image = image.astype(np.uint32).copy()
+    
+    #masked_image = image.astype(np.uint32).copy()
+    overlay = image.copy()
+    image_copy = image.copy()
+    
     for i in range(N):
         color = colors[i]
-
+        color = np.array([color[2], color[1], color[0]])
+        
         # Bounding box
         if not np.any(boxes[i]):
             # Skip this instance. Has no bbox. Likely lost in image cropping.
             continue
         y1, x1, y2, x2 = boxes[i]
-        p = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=2,
-                              alpha=0.4, linestyle="solid",
-                              edgecolor=color, facecolor='none')
-        ax.add_patch(p)
+        image = cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
 
         # Label
         class_id = class_ids[i]
@@ -124,14 +118,14 @@ def display_instances(image, boxes, masks, class_ids, class_names,
         label = class_names[class_id]
         x = random.randint(x1, (x1 + x2) // 2)
         caption = "{} {:.3f}".format(label, score) if score else label
-        tex = ax.text(x1, y1 + 8, caption,
-                color='w', size=11, backgroundcolor="none")
-        tex.backgroundcolor = [0,0,0]
-        
+
+        size, base = cv2.getTextSize(caption, cv2.FONT_HERSHEY_COMPLEX_SMALL, .5, 1)
+        image = cv2.rectangle(image, (x1+20, y1+20-size[1]), (x1+20+size[0], y1+20+base), (0, 0, 0), -1)
+        image = cv2.putText(image,caption, (x1+20,y1+20), cv2.FONT_HERSHEY_COMPLEX_SMALL, .5, (255,255,255))
         
         # Mask
         mask = masks[:, :, i]
-        masked_image = apply_mask(masked_image, mask, color)
+        overlay = apply_mask(overlay, mask, color)
 
         # Mask Polygon
         # Pad to ensure proper polygons for masks that touch image edges.
@@ -142,11 +136,12 @@ def display_instances(image, boxes, masks, class_ids, class_names,
         for verts in contours:
             # Subtract the padding and flip (y, x) to (x, y)
             verts = np.fliplr(verts) - 1
-            p = Polygon(verts, facecolor="none", edgecolor=color+(0.4,))
-            ax.add_patch(p)
-    ax.imshow(masked_image.astype(np.uint8))
-    plt.show()
-    
+            overlay = cv2.fillPoly(overlay, [verts.astype('int32')], np.array(color)*255)
+            
+    image = cv2.addWeighted(overlay, .5, image, 1, 0)
+
+    cv2.imshow('video', image)
+    cv2.waitKey(1)
 
 def draw_rois(image, rois, refined_rois, mask, class_ids, class_names, limit=10):
     """
@@ -258,6 +253,7 @@ def plot_precision_recall(AP, precisions, recalls):
     ax.set_ylim(0, 1.1)
     ax.set_xlim(0, 1.1)
     _ = ax.plot(recalls, precisions)
+    plt.show()
 
 
 def plot_overlaps(gt_class_ids, pred_class_ids, pred_scores,
@@ -297,7 +293,7 @@ def plot_overlaps(gt_class_ids, pred_class_ids, pred_scores,
     plt.tight_layout()
     plt.xlabel("Ground Truth")
     plt.ylabel("Predictions")
-
+    plt.show()
 
 def draw_boxes(image, boxes=None, refined_boxes=None,
                masks=None, captions=None, visibilities=None,
@@ -400,7 +396,7 @@ def draw_boxes(image, boxes=None, refined_boxes=None,
                 p = Polygon(verts, facecolor="none", edgecolor=color)
                 ax.add_patch(p)
     ax.imshow(masked_image.astype(np.uint8))
-
+    plt.show()
 
 def display_table(table):
     """Display values in a table format.
