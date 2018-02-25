@@ -92,7 +92,7 @@ def find_object_bbox_masks(file_name, shapes=None):
         
     return np.array(segments, dtype=np.int32), np.array(bboxes, dtype=np.int32)
 
-def return_mask(image_path, bbox, bag_type):
+def return_rgb_mask(image_path, bbox, bag_type):
     
     '''
     image_path: Location to image file
@@ -135,8 +135,11 @@ def return_mask(image_path, bbox, bag_type):
                     mask[key1][key2]=255
     
     #print (np.count_nonzero(mask)/(im.size[0]*im.size[1]))
+    
+    '''
     if ((np.count_nonzero(mask)/(orig_im.size[0]*orig_im.size[1]))<0.025):
         mask = np.ones((im.size[1], im.size[0]), dtype=np.uint8)*255
+    '''
     
     #print (mask.shape)
     height, width = orig_im.size[:2]
@@ -148,7 +151,7 @@ def return_mask(image_path, bbox, bag_type):
     
     return mask    
 
-def get_image_masks(image_path):
+def get_rgb_masks(image_path):
     
     split = image_path.split('JPEGImages')
     
@@ -169,20 +172,20 @@ def get_image_masks(image_path):
         bx = [int(obj.find('bndbox').find('ymin').text), int(obj.find('bndbox').find('xmin').text), int(obj.find('bndbox').find('ymax').text), int(obj.find('bndbox').find('xmax').text)]
         image_masks[:,:,i] = return_mask(image_path, np.array(bx), cls)
         classes.append(cls)
-    
+    '''
     orig_im = Image.open(image_path)
     
     for i in range(image_masks.shape[-1]):
         mask = Image.fromarray(np.dstack((image_masks[...,i], image_masks[...,i], image_masks[...,i])), 'RGB')
         Image.blend(orig_im, mask, 0.75).show()
-    
+    '''
     return image_masks, classes
 
 def test_time():
     tic = time.time()
     
-    for f in glob.glob(os.getcwd()+'/Data/handbag_images/JPEGImages/*.png'):
-        get_image_masks(f)
+    for f in glob.glob(os.getcwd()+'/Data/bags/white_bag/*.png'):
+        return_mask(f, np.array([0, 0, 510, 510]), "")
 
     #seg, bb = find_object_bbox_masks(os.getcwd()+'/Data/bags/black_ameligalanti/2017-L7-CK2-20780452-01-1.jpg')
 
@@ -190,4 +193,4 @@ def test_time():
 
     print (time.time()-tic)
 
-test_time()
+#test_time()
