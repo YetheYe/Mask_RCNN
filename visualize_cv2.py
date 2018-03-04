@@ -78,7 +78,7 @@ def apply_mask(image, mask, color, alpha=0.5):
 
 def display_instances(image, boxes, masks, class_ids, class_names,
                       scores=None, title="",
-                      figsize=(16, 16), ax=None):
+                      figsize=(16, 16), ax=None, display=True, writer=None):
     """
     boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
     masks: [height, width, num_instances]
@@ -115,6 +115,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
         # Label
         class_id = class_ids[i]
         score = scores[i] if scores is not None else None
+        print (class_id)
         label = class_names[class_id]
         x = random.randint(x1, (x1 + x2) // 2)
         caption = "{} {:.3f}".format(label, score) if score else label
@@ -139,8 +140,12 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             overlay = cv2.fillPoly(overlay, [verts.astype('int32')], np.array(color)*255)
             
     image = cv2.addWeighted(overlay, .5, image, 1, 0)
-
-    cv2.imshow('video', image)
+    
+    if display:
+        cv2.imshow('video', image)
+    else:
+        writer.write(image)
+    
     cv2.waitKey(1)
 
 def draw_rois(image, rois, refined_rois, mask, class_ids, class_names, limit=10):
