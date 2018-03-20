@@ -78,9 +78,9 @@ class BagsConfig(Config):
     NAME = "bags"
 
     GPU_COUNT = 1
-    IMAGES_PER_GPU = 1
-    NUM_CLASSES = 1 + 20  # background [index: 0] + 1 person class tranfer from COCO [index: 1] + 12 classes
-    STEPS_PER_EPOCH = 3000
+    IMAGES_PER_GPU = 2
+    NUM_CLASSES = 1 + 12  # background [index: 0] + 1 person class tranfer from COCO [index: 1] + 12 classes
+    STEPS_PER_EPOCH = 1000
     VALIDATION_STEPS = 100
 
 
@@ -89,7 +89,7 @@ class BagsConfig(Config):
 ############################################################
 
 class BagsDataset(utils.Dataset):
-    def load_bags(self):
+    def load_bags(self, json_path):
         """Load a subset of the COCO dataset.
         dataset_dir: The root directory of the COCO dataset.
         subset: What to load (train, val, minival, valminusminival)
@@ -100,48 +100,24 @@ class BagsDataset(utils.Dataset):
         return_coco: If True, returns the COCO object.
         auto_download: Automatically download and unzip MS-COCO images and annotations
         """
-        classes = ('blue_perfume', 'black_perfume', 'double_speedstick', 'blue_speedstick', 'dove_blue', 'dove_perfume', 'dove_pink', 'green_speedstick', 'gear_deo', 'dove_black', 'grey_speedstick', 'choc_blue', 'choc_red', 'choc_yellow', 'black_cup', 'nyu_cup', 'ilny_white', 'ilny_blue', 'ilny_black', 'human')
+        import json 
+        with open(json_path, 'r') as f:
+            dataset = json.load(f)
         
-        file_names = sorted(glob.glob('../Dataset/new/images/*.jpg'))
-        '''
-        #coco = COCO('../Dataset/new/annotations/dataset.json')
-        if subset == "minival" or subset == "valminusminival":
-            subset = "val"
-        image_dir = "{}/{}{}".format(dataset_dir, subset, year)
-
-        # Load all classes or a subset?
-        if not class_ids:
-            # All classes
-            class_ids = sorted(coco.getCatIds())
-
-        # All images or a subset?
-        if class_ids:
-            image_ids = []
-            for id in class_ids:
-                image_ids.extend(list(coco.getImgIds(catIds=[id])))
-            # Remove duplicates
-            image_ids = list(set(image_ids))
-        else:
-            # All images
-            image_ids = list(coco.imgs.keys())
-        '''
         # Add classes
-        for i in range(1,21):
-            self.add_class("bags", i, classes[i-1])
-
-        with open('../Dataset/new/annotations/dataset.json', 'r') as f:
-            obj = json.load(f)
+        for i, cls in enumerate(dataset['classes']):
+            self.add_class("bags", i+1, cls)
         
         imgToAnns = defaultdict(list)
-        for ann in obj['annotations']:
+        for ann in dataset['annotations']:
             imgToAnns[ann['image_id']].append(ann)
             
         # Add images
-        for i in range(10):
-            img = cv2.imread(file_names[i])
+        for i, img_path in enumerate([x['file_name'] for x in dataset['images']]):
+            img = cv2.imread(img_path)
             self.add_image(
                 "bags", image_id=i,
-                path=os.path.abspath(file_names[i]),
+                path=os.path.abspath(img_path),
                 width=img.shape[1],
                 height=img.shape[0],
                 annotations=imgToAnns[i])
@@ -323,14 +299,10 @@ if __name__ == '__main__':
         description='Train Mask R-CNN on MS COCO.')
     parser.add_argument("command",
                         metavar="<command>",
-                        help="'train' or 'evaluate' on MS COCO")
-    parser.add_argument('--dataset', required=False,
-                        metavar="/path/to/coco/",
-                        help='Directory of the MS-COCO dataset')
-    parser.add_argument('--year', required=False,
-                        default=DEFAULT_DATASET_YEAR,
-                        metavar="<year>",
-                        help='Year of the MS-COCO dataset (2014 or 2017) (default=2014)')
+                        help="'train' or 'evaluate'")
+    parser.add_argument('--json_file', required=False,
+                        metavar="/path/to/json_file/",
+                        help='Path to JSON file')
     parser.add_argument('--model', required=True,
                         metavar="/path/to/weights.h5",
                         help="Path to weights .h5 file or 'coco'")
@@ -342,18 +314,7 @@ if __name__ == '__main__':
                         default=500,
                         metavar="<image count>",
                         help='Images to use for evaluation (default=500)')
-    parser.add_argument('--download', required=False,
-                        default=False,
-                        metavar="<True|False>",
-                        help='Automatically download and unzip MS-COCO files (default=False)',
-                        type=bool)
     args = parser.parse_args()
-    print("Command: ", args.command)
-    print("Model: ", args.model)
-    print("Dataset: ", args.dataset)
-    print("Year: ", args.year)
-    print("Logs: ", args.logs)
-    print("Auto Download: ", args.download)
 
     # Configurations
     if args.command == "train":
@@ -376,36 +337,24 @@ if __name__ == '__main__':
         model = modellib.MaskRCNN(mode="inference", config=config,
                                   model_dir=args.logs)
 
-    # Select weights file to load
-    if args.model.lower() == "coco":
-        model_path = COCO_MODEL_PATH
-    elif args.model.lower() == "last":
-        # Find last trained weights
-        model_path = model.find_last()[1]
-    elif args.model.lower() == "imagenet":
-        # Start from ImageNet trained weights
-        model_path = model.get_imagenet_weights()
-    else:
-        model_path = args.model
-
     # Load weights
-    print("Loading weights ", model_path)
-    if args.model.lower() == "coco":
-        model.load_weights(model_path, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
+    print("Loading weights ", args.model)
+    if 'mask_rcnn_coco' in args.model.lower():
+        model.load_weights(args.model, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
     else:
-        model.load_weights(model_path, by_name=True)
+        model.load_weights(args.model, by_name=True)
 
     # Train or evaluate
     if args.command == "train":
         # Training dataset. Use the training set and 35K from the
         # validation set, as as in the Mask RCNN paper.
         dataset_train = BagsDataset()
-        dataset_train.load_bags()
+        dataset_train.load_bags(args.json_file)
         dataset_train.prepare()
 
         # Validation dataset
         dataset_val = BagsDataset()
-        dataset_val.load_bags()
+        dataset_val.load_bags(args.json_file)
         dataset_val.prepare()
 
         # *** This training schedule is an example. Update to your needs ***
@@ -414,7 +363,7 @@ if __name__ == '__main__':
         print("Training network heads")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=1,
+                    epochs=2,
                     layers='heads')
 
         # Training - Stage 2
@@ -422,7 +371,7 @@ if __name__ == '__main__':
         print("Fine tune Resnet stage 4 and up")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=1,
+                    epochs=2,
                     layers='4+')
 
         # Training - Stage 3
@@ -436,7 +385,7 @@ if __name__ == '__main__':
     elif args.command == "evaluate":
         # Validation dataset
         dataset_val = BagsDataset()
-        coco = dataset_val.load_bags()
+        coco = dataset_val.load_bags(args.json_file)
         dataset_val.prepare()
         print("Running COCO evaluation on {} images.".format(args.limit))
         evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))
