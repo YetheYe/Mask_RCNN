@@ -296,7 +296,7 @@ if __name__ == '__main__':
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(
-        description='Train Mask R-CNN on MS COCO.')
+        description='Train Mask R-CNN.')
     parser.add_argument("command",
                         metavar="<command>",
                         help="'train' or 'evaluate'")
@@ -305,7 +305,7 @@ if __name__ == '__main__':
                         help='Path to JSON file')
     parser.add_argument('--model', required=True,
                         metavar="/path/to/weights.h5",
-                        help="Path to weights .h5 file or 'coco'")
+                        help="Path to weights .h5 file")
     parser.add_argument('--logs', required=False,
                         default=DEFAULT_LOGS_DIR,
                         metavar="/path/to/logs/",
@@ -363,7 +363,7 @@ if __name__ == '__main__':
         print("Training network heads")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=2,
+                    epochs=3,
                     layers='heads')
 
         # Training - Stage 2
@@ -371,7 +371,7 @@ if __name__ == '__main__':
         print("Fine tune Resnet stage 4 and up")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=2,
+                    epochs=5,
                     layers='4+')
 
         # Training - Stage 3
@@ -379,7 +379,7 @@ if __name__ == '__main__':
         print("Fine tune all layers")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE / 10,
-                    epochs=2,
+                    epochs=8,
                     layers='all')
 
     elif args.command == "evaluate":

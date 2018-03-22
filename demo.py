@@ -11,6 +11,8 @@ import skimage.io
 import matplotlib
 import matplotlib.pyplot as plt
 import cv2
+import argparse
+import json
 
 from config import Config
 
@@ -27,14 +29,32 @@ class BagsConfig(Config):
 
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
-    NUM_CLASSES = 1 + 20  # background [index: 0] + 1 person class tranfer from COCO [index: 1] + 12 classes
+    NUM_CLASSES = 1 + 12  # background [index: 0] + 1 person class tranfer from COCO [index: 1] + 12 classes
 
 if __name__=='__main__':
 
     config = BagsConfig()
     config.display()
 
+    import argparse
 
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description='Demo Mask R-CNN.')
+    parser.add_argument('--json_file', required=True,
+                        metavar="/path/to/json_file/",
+                        help='Path to JSON file')
+    parser.add_argument('--model', required=True,
+                        metavar="/path/to/weights.h5",
+                        help="Path to weights .h5 file")
+    parser.add_argument('--video', required=True,
+                        metavar="path/to/demo/video",
+                        help='Video to play demo on')
+    parser.add_argument('--save_demo', required=False, 
+                        action='store_true', 
+                        help='Saves demo to file instead of display')
+    args = parser.parse_args()
+    
     # Root directory of the project
     ROOT_DIR = os.getcwd()
 
@@ -42,11 +62,11 @@ if __name__=='__main__':
     MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 
     # Local path to trained weights file
-    COCO_MODEL_PATH = sys.argv[2]
+    COCO_MODEL_PATH = args.model
     # Download COCO trained weights from Releases if needed
 
     # Directory of images to run detection on
-    cap = cv2.VideoCapture(sys.argv[1])
+    cap = cv2.VideoCapture(args.video)
 
     # ## Configurations
     # 
@@ -94,15 +114,14 @@ if __name__=='__main__':
     # COCO Class names
     # Index of the class in the list is its ID. For example, to get ID of
     # the teddy bear class, use: class_names.index('teddy bear')
-    class_names = ('BG', 'blue_perfume', 'black_perfume', 'double_speedstick', 'blue_speedstick', 'dove_blue', 'dove_perfume', 'dove_pink', 'green_speedstick', 'gear_deo', 'dove_black', 'grey_speedstick', 'choc_blue', 'choc_red', 'choc_yellow', 'black_cup', 'nyu_cup', 'ilny_white', 'ilny_blue', 'ilny_black', 'human')
-            
-
+    class_names = ['BG'] + json.load(open(args.json_file))['classes']
+    
     # ## Run Object Detection
 
     # In[5]:
 
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter('output.avi',fourcc, 20.0, (1080,1920))
+    out = cv2.VideoWriter('output.avi',-1, 20.0, (1080,1920))
 
     while (1):
         # Load a random image from the images folder
@@ -121,6 +140,7 @@ if __name__=='__main__':
         #visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], 
         #                            class_names, r['scores'], display=False, writer=out)
         visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], 
-                                    class_names, r['scores'])
+                                    class_names, r['scores'], save=args.save_demo, writer=out)
     cap.release()
     out.release()
+    cv2.destroyAllWindows()
