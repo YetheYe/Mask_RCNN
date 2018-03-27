@@ -47,4 +47,4 @@ def return_objects(img_path, json_file, model_path):
         
     return [class_names[i] for i in r['class_ids']]
 
-return_objects('1top1.png', '../../Dataset/pascal_dataset.json', 'logs/bags20180320T1421/mask_rcnn_bags_0005.h5')
+print (return_objects('1top1.png', '../../Dataset/pascal_dataset.json', 'logs/bags20180320T1421/mask_rcnn_bags_0005.h5'))

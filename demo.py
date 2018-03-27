@@ -13,28 +13,14 @@ import matplotlib.pyplot as plt
 import cv2
 import argparse
 import json
+import imutils
 
 from config import Config
 
 import model as modellib
 import visualize_cv2 as visualize
 
-class BagsConfig(Config):
-    """Configuration for training on MS COCO.
-    Derives from the base Config class and overrides values specific
-    to the COCO dataset.
-    """
-    # Give the configuration a recognizable name
-    NAME = "bags"
-
-    GPU_COUNT = 1
-    IMAGES_PER_GPU = 1
-    NUM_CLASSES = 1 + 12  # background [index: 0] + 1 person class tranfer from COCO [index: 1] + 12 classes
-
 if __name__=='__main__':
-
-    config = BagsConfig()
-    config.display()
 
     import argparse
 
@@ -47,6 +33,10 @@ if __name__=='__main__':
     parser.add_argument('--model', required=True,
                         metavar="/path/to/weights.h5",
                         help="Path to weights .h5 file")
+    parser.add_argument('--rotation', required=False,
+                        help="Angle to rotate video input stream")
+    parser.add_argument('--num_cls', required=True,
+                        help="Number of classes in dataset without BG class")
     parser.add_argument('--video', required=True,
                         metavar="path/to/demo/video",
                         help='Video to play demo on')
@@ -54,7 +44,23 @@ if __name__=='__main__':
                         action='store_true', 
                         help='Saves demo to file instead of display')
     args = parser.parse_args()
-    
+
+    class BagsConfig(Config):
+        """Configuration for training on MS COCO.
+        Derives from the base Config class and overrides values specific
+        to the COCO dataset.
+        """
+
+        # Give the configuration a recognizable name
+        NAME = "bags"
+
+        GPU_COUNT = 1
+        IMAGES_PER_GPU = 1
+        NUM_CLASSES = 1 + int(args.num_cls)  # background [index: 0] + 1 person class tranfer from COCO [index: 1] + 12 classes
+
+    config = BagsConfig()
+    config.display()
+
     # Root directory of the project
     ROOT_DIR = os.getcwd()
 
@@ -119,9 +125,10 @@ if __name__=='__main__':
     # ## Run Object Detection
 
     # In[5]:
-
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter('output.avi',-1, 20.0, (1080,1920))
+    ret, image = cap.read()
+    if args.rotation is not None:
+        image = imutils.rotate(image, int(args.rotation))
+    out = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 20, (image.shape[1], image.shape[0]))        
 
     while (1):
         # Load a random image from the images folder
@@ -130,13 +137,16 @@ if __name__=='__main__':
             break
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
+        if args.rotation is not None:
+            image = imutils.rotate(image, int(args.rotation))
+
         # Run detection
         results = model.detect([image], verbose=1)
 
         # Visualize results
         r = results[0]
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        
+
         #visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], 
         #                            class_names, r['scores'], display=False, writer=out)
         visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], 

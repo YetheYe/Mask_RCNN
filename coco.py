@@ -65,26 +65,6 @@ DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 DEFAULT_DATASET_YEAR = "2017"
 
 ############################################################
-#  Configurations
-############################################################
-
-
-class BagsConfig(Config):
-    """Configuration for training on MS COCO.
-    Derives from the base Config class and overrides values specific
-    to the COCO dataset.
-    """
-    # Give the configuration a recognizable name
-    NAME = "bags"
-
-    GPU_COUNT = 1
-    IMAGES_PER_GPU = 2
-    NUM_CLASSES = 1 + 12  # background [index: 0] + 1 person class tranfer from COCO [index: 1] + 12 classes
-    STEPS_PER_EPOCH = 1000
-    VALIDATION_STEPS = 100
-
-
-############################################################
 #  Dataset
 ############################################################
 
@@ -303,6 +283,8 @@ if __name__ == '__main__':
     parser.add_argument('--json_file', required=False,
                         metavar="/path/to/json_file/",
                         help='Path to JSON file')
+    parser.add_argument('--num_cls', required=True,
+                        help="Number of classes in dataset without BG class")
     parser.add_argument('--model', required=True,
                         metavar="/path/to/weights.h5",
                         help="Path to weights .h5 file")
@@ -315,6 +297,26 @@ if __name__ == '__main__':
                         metavar="<image count>",
                         help='Images to use for evaluation (default=500)')
     args = parser.parse_args()
+
+
+    ############################################################
+    #  Configurations
+    ############################################################
+
+
+    class BagsConfig(Config):
+        """Configuration for training on MS COCO.
+        Derives from the base Config class and overrides values specific
+        to the COCO dataset.
+        """
+        # Give the configuration a recognizable name
+        NAME = "bags"
+
+        GPU_COUNT = 1
+        IMAGES_PER_GPU = 2
+        NUM_CLASSES = 1 + int(args.num_cls)  # background [index: 0] + 1 person class tranfer from COCO [index: 1] + 12 classes
+        STEPS_PER_EPOCH = 1000
+        VALIDATION_STEPS = 100
 
     # Configurations
     if args.command == "train":
