@@ -15,6 +15,7 @@ import argparse
 import json
 import imutils
 
+from remove_bars import trim
 from config import Config
 
 import model as modellib
@@ -35,6 +36,8 @@ if __name__=='__main__':
                         help="Path to weights .h5 file")
     parser.add_argument('--rotation', required=False,
                         help="Angle to rotate video input stream")
+    parser.add_argument('--trim', required=False,
+                        help="Remove possible black bars if any due to rotation")
     parser.add_argument('--num_cls', required=True,
                         help="Number of classes in dataset without BG class")
     parser.add_argument('--video', required=True,
@@ -126,9 +129,13 @@ if __name__=='__main__':
 
     # In[5]:
     ret, image = cap.read()
+
     if args.rotation is not None:
         image = imutils.rotate(image, int(args.rotation))
     out = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 20, (image.shape[1], image.shape[0]))        
+
+    if args.trim:
+        image = trim(image)
 
     while (1):
         # Load a random image from the images folder
@@ -140,6 +147,9 @@ if __name__=='__main__':
         if args.rotation is not None:
             image = imutils.rotate(image, int(args.rotation))
 
+        if args.trim:
+            image = trim(image)
+            
         # Run detection
         results = model.detect([image], verbose=1)
 
