@@ -2,18 +2,12 @@ import os
 import sys
 import random
 import math
-import numpy as np
-import skimage.io
-import matplotlib
-import matplotlib.pyplot as plt
 import cv2
-import argparse
 import json
 
 from config import Config
 
 import model as modellib
-import visualize_cv2 as visualize
 
 class BagsConfig(Config):
     """Configuration for training on MS COCO.
@@ -47,4 +41,4 @@ def return_objects(img_path, json_file, model_path):
         
     return [class_names[i] for i in r['class_ids']]
 
-print (return_objects('1top1.png', '../../Dataset/pascal_dataset.json', 'logs/bags20180320T1421/mask_rcnn_bags_0005.h5'))
+print (return_objects('1top1.png', 'model/pascal_dataset.json', 'model/mask_rcnn_bags_0005.h5'))
