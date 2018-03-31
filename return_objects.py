@@ -41,4 +41,5 @@ def return_objects(img_path, json_file, model_path):
         
     return [class_names[i] for i in r['class_ids']]
 
-print (return_objects('1top1.png', 'model/pascal_dataset.json', 'model/mask_rcnn_bags_0005.h5'))
+if __name__ == '__main__':
+    print (return_objects('1top1.png', 'model/pascal_dataset.json', 'model/mask_rcnn_bags_0005.h5'))
