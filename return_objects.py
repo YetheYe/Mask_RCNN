@@ -37,12 +37,20 @@ class Hans1:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         # ## Run Object Detection
-        results = self.model.detect([image], verbose=0)
+        labels = self.model.detect([image], verbose=0)
 
-        # Visualize results
-        r = results[0]
-        
-        return [self.class_names[i] for i in r['class_ids']]
+        labels = labels[0]
+
+        results = []
+        for i in range(len(labels['class_ids'])):
+            results.append({
+                'class': self.class_names[labels['class_ids'][i]],
+                'score': labels['scores'][i],
+                'roi': labels['rois'][i],
+                'mask': labels['masks'][i]
+            })
+
+        return results
 
 if __name__ == '__main__':
     ai = Hans1('model/pascal_dataset.json', 'model/mask_rcnn_bags_0005.h5')
