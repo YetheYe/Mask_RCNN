@@ -43,6 +43,8 @@ if __name__=='__main__':
     parser.add_argument('--video', required=True,
                         metavar="path/to/demo/video",
                         help='Video to play demo on')
+    parser.add_argument('--show_upc', required=False,
+                        help='Display UPC numbers instead of class_names from file')
     parser.add_argument('--save_demo', required=False, 
                         action='store_true', 
                         help='Saves demo to file instead of display')
@@ -124,6 +126,11 @@ if __name__=='__main__':
     # Index of the class in the list is its ID. For example, to get ID of
     # the teddy bear class, use: class_names.index('teddy bear')
     class_names = ['BG'] + json.load(open(args.json_file))['classes']
+    if args.upc_file is not None:
+        with open(args.upc_file, 'r') as f:
+            for line in f.readlines():
+                code, cls = [x.strip() for x in line.split(' ')]
+                class_names[class_names.index(cls)] = code
     
     # ## Run Object Detection
 
