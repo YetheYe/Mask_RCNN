@@ -32,10 +32,7 @@ class Hans1:
         self.class_names = [ 'BG' ] + json.load(open(json_file))['classes']
 
 
-    def return_objects(self, img_path):
-        image = cv2.imread(img_path)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
+    def return_objects(self, image):
         # ## Run Object Detection
         labels = self.model.detect([image], verbose=0)
 
@@ -44,7 +41,8 @@ class Hans1:
         results = []
         for i in range(len(labels['class_ids'])):
             results.append({
-                'class': self.class_names[labels['class_ids'][i]],
+                'class_idx': labels['class_ids'][i],
+                'class_name': self.class_names[labels['class_ids'][i]],
                 'score': labels['scores'][i],
                 'roi': labels['rois'][i],
                 'mask': labels['masks'][i]
