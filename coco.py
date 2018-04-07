@@ -49,7 +49,7 @@ import json
 import cv2
 import glob
 
-import imgaug as iaa
+from imgaug import augmentors as iaa
 
 from config import Config
 import utils
