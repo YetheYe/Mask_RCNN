@@ -401,6 +401,7 @@ def resize_image(image, min_dim=None, max_dim=None, padding=False):
     padding: Padding added to the image [(top, bottom), (left, right), (0, 0)]
     """
     # Default window (y1, x1, y2, x2) and default scale == 1.
+    
     h, w = image.shape[:2]
     window = (0, 0, h, w)
     scale = 1
