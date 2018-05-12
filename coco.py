@@ -34,7 +34,7 @@ import numpy as np
 # Download and install the Python COCO tools from https://github.com/waleedka/coco
 # That's a fork from the original https://github.com/pdollar/coco with a bug
 # fix for Python 3.
-# I submitted a pull request https://github.com/BagsDataset/cocoapi/pull/50
+# I submitted a pull request https://github.com/cocodataset/cocoapi/pull/50
 # If the PR is merged then use the original repo.
 # Note: Edit PythonAPI/Makefile and replace "python" with "python3".
 from pycocotools.coco import COCO
@@ -48,8 +48,6 @@ import shutil
 import json
 import cv2
 import glob
-
-from imgaug import augmenters as iaa
 
 from config import Config
 import utils
@@ -192,7 +190,7 @@ class BagsDataset(utils.Dataset):
 ############################################################
 
 def build_coco_results(dataset, image_ids, rois, class_ids, scores, masks):
-    """Arrange resutls to match COCO specs in http://BagsDataset.org/#format
+    """Arrange resutls to match COCO specs in http://cocodataset.org/#format
     """
     # If no results, return an empty list
     if rois is None:
@@ -282,26 +280,26 @@ if __name__ == '__main__':
     parser.add_argument("command",
                         metavar="<command>",
                         help="'train' or 'evaluate'")
-    parser.add_argument('--json_file', required=False,
+    parser.add_argument('-j', '--json_file', required=False,
                         metavar="/path/to/json_file/",
                         help='Path to JSON file')
-    parser.add_argument('--num_cls', required=True,
+    parser.add_argument('-n', '--num_cls', required=True,
                         help="Number of classes in dataset without BG class")
-    parser.add_argument('--model', required=True,
+    parser.add_argument('-m', '--model', required=True,
                         metavar="/path/to/weights.h5",
                         help="Path to weights .h5 file")
-    parser.add_argument('--logs', required=False,
+    parser.add_argument('-l', '--logs', required=False,
                         default=DEFAULT_LOGS_DIR,
                         metavar="/path/to/logs/",
                         help='Logs and checkpoints directory (default=logs/)')
-    parser.add_argument('--limit', required=False,
+    parser.add_argument('-d', '--limit', required=False,
                         default=500,
                         metavar="<image count>",
                         help='Images to use for evaluation (default=500)')
+    parser.add_argument('-r', '--reuse', required=False, action='store_true',
+                        help="Continue from previous checkpoint")
     args = parser.parse_args()
-    
-    
-    aug = iaa.OneOf([iaa.CropAndPad(percent=(-0.5, 0.5)), iaa.Fliplr(0.5), iaa.Affine(translate_percent={"x": (-0.4, 0.4), "y": (-0.4, 0.4)})])
+
 
     ############################################################
     #  Configurations
@@ -319,21 +317,8 @@ if __name__ == '__main__':
         GPU_COUNT = 2
         IMAGES_PER_GPU = 2
         NUM_CLASSES = 1 + int(args.num_cls)  # background [index: 0] + 1 person class tranfer from COCO [index: 1] + 12 classes
-        STEPS_PER_EPOCH = 500
-        VALIDATION_STEPS = 100
-        IMAGE_MIN_DIM = 256
-        IMAGE_MAX_DIM = 512
-        IMAGE_PADDING = True
-        TRAIN_ROIS_PER_IMAGE = 1024
-        ROI_POSITIVE_RATIO = 0.33
-        MEAN_PIXEL = [70.53, 20.56, 48.22]
-        
-        LEARNING_RATE = 1e-3
-
-        USE_MINI_MASK = True
-        MAX_GT_INSTANCES = 500
-
-
+        STEPS_PER_EPOCH = 3000
+        VALIDATION_STEPS = 1000
     # Configurations
     if args.command == "train":
         config = BagsConfig()
@@ -357,7 +342,7 @@ if __name__ == '__main__':
 
     # Load weights
     print("Loading weights ", args.model)
-    if 'mask_rcnn_coco' in args.model.lower():
+    if not args.reuse:
         model.load_weights(args.model, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
     else:
         model.load_weights(args.model, by_name=True)
@@ -381,18 +366,16 @@ if __name__ == '__main__':
         print("Training network heads")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=100,
-                    layers='heads',
-                    augmentation=aug)
+                    epochs=3,
+                    layers='heads')
 
         # Training - Stage 2
         # Finetune layers from ResNet stage 4 and up
         print("Fine tune Resnet stage 4 and up")
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=60,
-                    layers='4+',
-                    augmentation=aug)
+                    epochs=8,
+                    layers='4+')
 
         # Training - Stage 3
         # Fine tune all layers
@@ -400,8 +383,7 @@ if __name__ == '__main__':
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE / 10,
                     epochs=10,
-                    layers='all',
-                    augmentation=aug)
+                    layers='all')
 
     elif args.command == "evaluate":
         # Validation dataset
