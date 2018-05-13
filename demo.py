@@ -41,11 +41,11 @@ if __name__=='__main__':
                         help="Number of classes in dataset without BG class")
     parser.add_argument('--video', required=False,
                         metavar="path/to/demo/video",
-                        help='Video to play demo on')
+                        help='Video to play demo on', default=None)
     parser.add_argument('--image', required=False,
                         metavar="path/to/demo/image",
                         help='Video to play demo on')
-    parser.add_argument('--show_upc', required=False,
+    parser.add_argument('--show_upc', required=False, default=None,
                         help='Display UPC numbers instead of class_names from file')
     parser.add_argument('--save_demo', required=False, 
                         action='store_true', 
@@ -78,9 +78,9 @@ if __name__=='__main__':
     COCO_MODEL_PATH = args.model
     # Download COCO trained weights from Releases if needed
     
-    if not hasattr(args, 'image'):
-    	# Directory of images to run detection on
-    	cap = cv2.VideoCapture(args.video)
+    if args.video is not None:
+        # Directory of images to run detection on
+        cap = cv2.VideoCapture(args.video)
 
     # ## Configurations
     # 
@@ -137,24 +137,22 @@ if __name__=='__main__':
     
     # ## Run Object Detection
     
-    if not hasattr(args, 'image'):
+    if args.video is not None:
     	# In[5]:
     	ret, image = cap.read()
     else:
-    	image = cv2.imread(args.image)
+    	image = cv2.resize(cv2.imread(args.image), (0,0), fx=0.25, fy=0.25)
     if args.rotation is not None:
         image = imutils.rotate_bound(image, int(args.rotation))
     out = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 20, (image.shape[1], image.shape[0]))        
 
-    if args.trim:
-        image = trim(image)
-
+    ret = True
     while (1):
-        if not hasattr(args, 'image'):
+        if args.video is not None:
             # Load a random image from the images folder
             ret, image = cap.read()
         else:
-            image = cv2.imread(args.image)
+            image = cv2.resize(cv2.imread(args.image), (0,0), fx=0.25, fy=0.25)
         if not ret:
             break
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
