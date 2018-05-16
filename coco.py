@@ -298,11 +298,13 @@ if __name__ == '__main__':
                         default=500,
                         metavar="<image count>",
                         help='Images to use for evaluation (default=500)')
+    parser.add_argument('--augment', required=False, action='store_true', help='add augmentations')
     args = parser.parse_args()
     
-    
-    aug = iaa.OneOf([iaa.CropAndPad(percent=(-0.5, 0.5)), iaa.Fliplr(0.5), iaa.Affine(translate_percent={"x": (-0.4, 0.4), "y": (-0.4, 0.4)})])
-
+    if args.augment:
+        aug = iaa.OneOf([iaa.CropAndPad(percent=(-0.5, 0.5)), iaa.Fliplr(0.5), iaa.Affine(translate_percent={"x": (-0.4, 0.4), "y": (-0.4, 0.4)})])
+    else:
+        aug = None
     ############################################################
     #  Configurations
     ############################################################

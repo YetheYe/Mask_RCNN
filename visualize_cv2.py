@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.lines as lines
 from matplotlib.patches import Polygon
-import IPython.display
 
 import cv2
 
@@ -60,7 +59,7 @@ def random_colors(N, bright=True):
     brightness = 1.0 if bright else 0.7
     hsv = [(i / N, 1, brightness) for i in range(N)]
     colors = list(map(lambda c: colorsys.hsv_to_rgb(*c), hsv))
-    random.shuffle(colors)
+    #random.shuffle(colors)
     return colors
 
 
@@ -92,7 +91,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     N = boxes.shape[0]
     
     # Generate random colors
-    colors = random_colors(N)
+    colors = random_colors(len(class_names))
 
     # Show area outside image boundaries.
     height, width = image.shape[:2]
@@ -102,7 +101,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     image_copy = image.copy()
     
     for i in range(N):
-        color = colors[i]
+        color = colors[class_ids[i]]
         color = np.array([color[2], color[1], color[0]])
         
         # Bounding box

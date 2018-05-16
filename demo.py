@@ -15,7 +15,6 @@ import argparse
 import json
 import imutils
 
-from remove_bars import trim
 from config import Config
 
 import model as modellib
@@ -40,10 +39,13 @@ if __name__=='__main__':
                         help="Remove possible black bars if any due to rotation")
     parser.add_argument('--num_cls', required=True,
                         help="Number of classes in dataset without BG class")
-    parser.add_argument('--video', required=True,
+    parser.add_argument('--video', required=False,
                         metavar="path/to/demo/video",
+                        help='Video to play demo on', default=None)
+    parser.add_argument('--image', required=False,
+                        metavar="path/to/demo/image",
                         help='Video to play demo on')
-    parser.add_argument('--show_upc', required=False,
+    parser.add_argument('--show_upc', required=False, default=None,
                         help='Display UPC numbers instead of class_names from file')
     parser.add_argument('--save_demo', required=False, 
                         action='store_true', 
@@ -75,9 +77,10 @@ if __name__=='__main__':
     # Local path to trained weights file
     COCO_MODEL_PATH = args.model
     # Download COCO trained weights from Releases if needed
-
-    # Directory of images to run detection on
-    cap = cv2.VideoCapture(args.video)
+    
+    if args.video is not None:
+        # Directory of images to run detection on
+        cap = cv2.VideoCapture(args.video)
 
     # ## Configurations
     # 
@@ -126,27 +129,30 @@ if __name__=='__main__':
     # Index of the class in the list is its ID. For example, to get ID of
     # the teddy bear class, use: class_names.index('teddy bear')
     class_names = ['BG'] + json.load(open(args.json_file))['classes']
-    if args.upc_file is not None:
+    if hasattr(args, 'upc_file'):
         with open(args.upc_file, 'r') as f:
             for line in f.readlines():
                 code, cls = [x.strip() for x in line.split(' ')]
                 class_names[class_names.index(cls)] = code
     
     # ## Run Object Detection
-
-    # In[5]:
-    ret, image = cap.read()
-
+    
+    if args.video is not None:
+    	# In[5]:
+    	ret, image = cap.read()
+    else:
+    	image = cv2.resize(cv2.imread(args.image), (0,0), fx=0.25, fy=0.25)
     if args.rotation is not None:
-        image = imutils.rotate(image, int(args.rotation))
+        image = imutils.rotate_bound(image, int(args.rotation))
     out = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 20, (image.shape[1], image.shape[0]))        
 
-    if args.trim:
-        image = trim(image)
-
+    ret = True
     while (1):
-        # Load a random image from the images folder
-        ret, image = cap.read()
+        if args.video is not None:
+            # Load a random image from the images folder
+            ret, image = cap.read()
+        else:
+            image = cv2.resize(cv2.imread(args.image), (0,0), fx=0.25, fy=0.25)
         if not ret:
             break
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
