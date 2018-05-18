@@ -51,5 +51,5 @@ class Hans1:
         return results
 
 if __name__ == '__main__':
-    ai = Hans1('model/pascal_dataset.json', 'model/mask_rcnn_bags_0005.h5')
-    print(ai.return_objects('1top1.png'))
+    ai = Hans1('model/CISCO/cisco_new.json', 'model/CISCO/cisco_mask_rcnn_csv.h5')
+    #print(ai.return_objects('1top1.png'))
