@@ -140,7 +140,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     image = cv2.addWeighted(overlay, .5, image, 1, 0)
     
     if not save:
-        cv2.imshow('video', image)
+        cv2.imshow('frame', image)
         cv2.waitKey(1)
     else:
         writer.write(image)
