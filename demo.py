@@ -111,6 +111,7 @@ if __name__=='__main__':
                                     class_names, r['scores'], save=args.save_demo, writer=out)
         if args.image is not None:
             cv2.waitKey()
-    cap.release()
-    out.release()
+    if args.video is not None:
+        cap.release()
+        out.release()
     cv2.destroyAllWindows()
