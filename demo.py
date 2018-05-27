@@ -84,7 +84,7 @@ if __name__=='__main__':
         image = cv2.imread(args.image)
         ret = False      
         out=None
-
+    
     while (1):
         if args.video is not None:
             ret, image = cap.read()
@@ -106,10 +106,12 @@ if __name__=='__main__':
         # Visualize results
         r = results[0]
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
+        
+        t = 'image' if args.image is not None else 'video'
+        
         visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], 
-                                    class_names, r['scores'], save=args.save_demo, writer=out)
-        if args.image is not None:
+                                    class_names, r['scores'], save=args.save_demo, writer=out, dtype=t)
+        if args.image is not None and not args.save_demo:
             cv2.waitKey()
     if args.video is not None:
         cap.release()

@@ -77,7 +77,7 @@ def apply_mask(image, mask, color, alpha=0.5):
 
 def display_instances(image, boxes, masks, class_ids, class_names,
                       scores=None, title="",
-                      figsize=(16, 16), ax=None, save=False, writer=None):
+                      figsize=(16, 16), ax=None, save=False, writer=None, dtype='image'):
     """
     boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
     masks: [height, width, num_instances]
@@ -143,8 +143,10 @@ def display_instances(image, boxes, masks, class_ids, class_names,
         cv2.imshow('frame', image)
         cv2.waitKey(1)
     else:
-        writer.write(image)
-    
+        if dtype=='image':
+            cv2.imwrite('output.jpg', image)
+        else:
+            writer.write(image)
 
 def draw_rois(image, rois, refined_rois, mask, class_ids, class_names, limit=10):
     """
