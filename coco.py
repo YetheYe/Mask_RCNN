@@ -96,13 +96,14 @@ class BagsDataset(utils.Dataset):
             
         # Add images
         for i, img_path in enumerate([x['file_name'] for x in dataset['images']]):
-            img = cv2.imread(img_path)
-            self.add_image(
-                "bags", image_id=i,
-                path=os.path.abspath(img_path),
-                width=img.shape[1],
-                height=img.shape[0],
-                annotations=imgToAnns[i])
+            if os.path.exists(img_path):
+                img = cv2.imread(img_path)
+                self.add_image(
+                    "bags", image_id=i,
+                    path=os.path.abspath(img_path),
+                    width=img.shape[1],
+                    height=img.shape[0],
+                    annotations=imgToAnns[i])
         
    
     def load_mask(self, image_id):
@@ -378,7 +379,7 @@ if __name__ == '__main__':
         dataset_val.load_bags(args.json_file)
         dataset_val.prepare()
         
-        temps = 100
+        temps = 30
         # *** This training schedule is an example. Update to your needs ***
         if args.stage==1:     
             # Training - Stage 1
