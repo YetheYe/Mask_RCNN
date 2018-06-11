@@ -11,12 +11,21 @@ import cv2
 import argparse
 import json
 import imutils
+import glob
 
 from config import Config
 
 import model as modellib
 import visualize_cv2 as visualize
 
+NUM_CLS=22
+
+class BagsConfig(Config):
+    NAME = "bags"
+    GPU_COUNT = 1
+    IMAGES_PER_GPU = 1
+    NUM_CLASSES = 1 + NUM_CLS  # background + classes
+        
 if __name__=='__main__':
 
     import argparse
@@ -40,6 +49,9 @@ if __name__=='__main__':
     parser.add_argument('--image', required=False,
                         metavar="path/to/demo/image",
                         help='Video to play demo on')
+    parser.add_argument('--image_dir', required=False,
+                        metavar="path/to/demo/image/dir",
+                        help='Image dir to play demo on')
     parser.add_argument('--show_upc', required=False, default=None,
                         help='Display UPC numbers instead of class_names from file')
     parser.add_argument('--save_demo', required=False, 
@@ -51,11 +63,6 @@ if __name__=='__main__':
     
     cv2.namedWindow('frame', cv2.WND_PROP_FULLSCREEN)
     
-    class BagsConfig(Config):
-        NAME = "bags"
-        GPU_COUNT = 1
-        IMAGES_PER_GPU = 1
-        NUM_CLASSES = 1 + int(args.num_cls)  # background + classes
     config = BagsConfig()
     config.display()
 
@@ -80,14 +87,18 @@ if __name__=='__main__':
         if args.resize is not None:
             image = cv2.resize(image, (0,0), fx=float(args.resize), fy=float(args.resize))
         out = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 20, (image.shape[1], image.shape[0]))
+    elif args.image_dir is not None:
+        img_files=
     else:
         image = cv2.imread(args.image)
         ret = False      
         out=None
-    
+    ind = 0
     while (1):
         if args.video is not None:
             ret, image = cap.read()
+        elif args.image_dir is not None:
+            image = cv2.imread(cv2.imread(
         else:
             image = cv2.imread(args.image)
             ret = not ret    

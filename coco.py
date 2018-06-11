@@ -272,6 +272,30 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
 #  Training
 ############################################################
 
+class BagsConfig(Config):
+    """Configuration for training on MS COCO.
+    Derives from the base Config class and overrides values specific
+    to the COCO dataset.
+    """
+    # Give the configuration a recognizable name
+    NAME = "bags"
+    GPU_COUNT = 1
+    IMAGES_PER_GPU = 1
+    STEPS_PER_EPOCH = 500
+    VALIDATION_STEPS = 100
+    IMAGE_MIN_DIM = 1024
+    IMAGE_MAX_DIM = 1024
+    IMAGE_PADDING = True
+    TRAIN_ROIS_PER_IMAGE = 1024
+    ROI_POSITIVE_RATIO = 0.33
+    MEAN_PIXEL = [70.53, 20.56, 48.22]
+    BACKBONE='resnet101'
+    LEARNING_RATE = 1e-3
+    USE_MINI_MASK = True
+    MAX_GT_INSTANCES = 500
+    
+    def __init__(self, n):
+        NUM_CLASSES = 1 + n 
 
 if __name__ == '__main__':
     import argparse
@@ -308,35 +332,7 @@ if __name__ == '__main__':
     ############################################################
     #  Configurations
     ############################################################
-
-
-    class BagsConfig(Config):
-        """Configuration for training on MS COCO.
-        Derives from the base Config class and overrides values specific
-        to the COCO dataset.
-        """
-        # Give the configuration a recognizable name
-        NAME = "bags"
-
-        GPU_COUNT = 1
-        IMAGES_PER_GPU = 1
-        NUM_CLASSES = 1 + int(args.num_cls)  # background [index: 0] + 1 person class tranfer from COCO [index: 1] + 12 classes
-        STEPS_PER_EPOCH = 500
-        VALIDATION_STEPS = 100
-        IMAGE_MIN_DIM = 1024
-        IMAGE_MAX_DIM = 1024
-        IMAGE_PADDING = True
-        TRAIN_ROIS_PER_IMAGE = 1024
-        ROI_POSITIVE_RATIO = 0.33
-        MEAN_PIXEL = [70.53, 20.56, 48.22]
-        BACKBONE='resnet101'
-        LEARNING_RATE = 1e-3
-
-        USE_MINI_MASK = True
-        MAX_GT_INSTANCES = 500
-
-
-    # Configurations
+    
     if args.command == "train":
         config = BagsConfig()
     else:
@@ -368,12 +364,12 @@ if __name__ == '__main__':
     if args.command == "train":
         # Training dataset. Use the training set and 35K from the
         # validation set, as as in the Mask RCNN paper.
-        dataset_train = BagsDataset()
+        dataset_train = BagsDataset(int(args.num_classes))
         dataset_train.load_bags(args.json_file)
         dataset_train.prepare()
 
         # Validation dataset
-        dataset_val = BagsDataset()
+        dataset_val = BagsDataset(int(args.num_classes))
         dataset_val.load_bags(args.json_file)
         dataset_val.prepare()
 
@@ -407,7 +403,7 @@ if __name__ == '__main__':
 
     elif args.command == "evaluate":
         # Validation dataset
-        dataset_val = BagsDataset()
+        dataset_val = BagsDataset(int(args.num_classes))
         coco = dataset_val.load_bags(args.json_file)
         dataset_val.prepare()
         print("Running COCO evaluation on {} images.".format(args.limit))
