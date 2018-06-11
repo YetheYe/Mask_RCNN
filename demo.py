@@ -88,7 +88,8 @@ if __name__=='__main__':
             image = cv2.resize(image, (0,0), fx=float(args.resize), fy=float(args.resize))
         out = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 20, (image.shape[1], image.shape[0]))
     elif args.image_dir is not None:
-        img_files=
+        img_files=glob.glob(os.path.join(args.image_dir, '*'))
+        ret = True
     else:
         image = cv2.imread(args.image)
         ret = False      
@@ -98,7 +99,9 @@ if __name__=='__main__':
         if args.video is not None:
             ret, image = cap.read()
         elif args.image_dir is not None:
-            image = cv2.imread(cv2.imread(
+            image = cv2.imread(img_files[ind])
+            ind+=1
+            out = None
         else:
             image = cv2.imread(args.image)
             ret = not ret    
@@ -122,7 +125,7 @@ if __name__=='__main__':
         
         visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], 
                                     class_names, r['scores'], save=args.save_demo, writer=out, dtype=t)
-        if args.image is not None and not args.save_demo:
+        if args.image is not None and not args.save_demo or args.image_dir is not None:
             cv2.waitKey()
     if args.video is not None:
         cap.release()
