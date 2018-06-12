@@ -96,13 +96,14 @@ class BagsDataset(utils.Dataset):
             
         # Add images
         for i, img_path in enumerate([x['file_name'] for x in dataset['images']]):
-            img = cv2.imread(img_path)
-            self.add_image(
-                "bags", image_id=i,
-                path=os.path.abspath(img_path),
-                width=img.shape[1],
-                height=img.shape[0],
-                annotations=imgToAnns[i])
+            if os.path.exists(img_path):
+                img = cv2.imread(img_path)
+                self.add_image(
+                    "bags", image_id=i,
+                    path=os.path.abspath(img_path),
+                    width=img.shape[1],
+                    height=img.shape[0],
+                    annotations=imgToAnns[i])
         
    
     def load_mask(self, image_id):
@@ -323,6 +324,7 @@ if __name__ == '__main__':
                         metavar="<image count>",
                         help='Images to use for evaluation (default=500)')
     parser.add_argument('--augment', required=False, action='store_true', help='add augmentations')
+    parser.add_argument('--stage', required=True, default=1, type=int, help='Choose stage of training (1-heads, 2-4+, 3-full)')
     args = parser.parse_args()
     
     if args.augment:
@@ -372,34 +374,34 @@ if __name__ == '__main__':
         dataset_val = BagsDataset(int(args.num_classes))
         dataset_val.load_bags(args.json_file)
         dataset_val.prepare()
-
+        
+        temps = 30
         # *** This training schedule is an example. Update to your needs ***
-
-        # Training - Stage 1
-        print("Training network heads")
-        model.train(dataset_train, dataset_val,
-                    learning_rate=config.LEARNING_RATE,
-                    epochs=100,
-                    layers='heads',
-                    augmentation=aug)
-
-        # Training - Stage 2
-        # Finetune layers from ResNet stage 4 and up
-        print("Fine tune Resnet stage 4 and up")
-        model.train(dataset_train, dataset_val,
-                    learning_rate=config.LEARNING_RATE,
-                    epochs=60,
-                    layers='4+',
-                    augmentation=aug)
-
-        # Training - Stage 3
-        # Fine tune all layers
-        print("Fine tune all layers")
-        model.train(dataset_train, dataset_val,
-                    learning_rate=config.LEARNING_RATE / 10,
-                    epochs=10,
-                    layers='all',
-                    augmentation=aug)
+        if args.stage==1:     
+            # Training - Stage 1
+            print("Training network heads")
+            model.train(dataset_train, dataset_val,
+                        learning_rate=0.001,
+                        epochs=temps,
+                        layers='heads',
+                        augmentation=aug)
+        elif args.stage==2:
+            # Training - Stage 2
+            print("Training 4+ layers")
+            model.train(dataset_train, dataset_val,
+                        learning_rate=config.LEARNING_RATE / 10,
+                        epochs=temps+40,
+                        layers='4+',
+                        augmentation=aug)
+        else:
+            #Training - Stage 3
+            # Fine tune all layers
+            print("Fine tune all layers")
+            model.train(dataset_train, dataset_val,
+                        learning_rate=0.0001,
+                        epochs=temps+40+15,
+                        layers='all',
+                        augmentation=aug)
 
     elif args.command == "evaluate":
         # Validation dataset
