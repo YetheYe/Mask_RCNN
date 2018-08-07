@@ -77,7 +77,7 @@ def apply_mask(image, mask, color, alpha=0.5):
 
 def display_instances(image, boxes, masks, class_ids, class_names,
                       scores=None, title="",
-                      figsize=(16, 16), ax=None, save=False, writer=None, dtype='image'):
+                      figsize=(16, 16), ax=None, save=False, writer=None, dtype='image', ind = -1):
     """
     boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
     masks: [height, width, num_instances]
@@ -86,7 +86,6 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     scores: (optional) confidence scores for each box
     figsize: (optional) the size of the image.
     """
-    
     # Number of instances
     N = boxes.shape[0]
     
@@ -136,7 +135,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             # Subtract the padding and flip (y, x) to (x, y)
             verts = np.fliplr(verts) - 1
             overlay = cv2.fillPoly(overlay, [verts.astype('int32')], np.array(color)*255)
-            
+    
     image = cv2.addWeighted(overlay, .5, image, 1, 0)
     
     if not save:
@@ -144,7 +143,10 @@ def display_instances(image, boxes, masks, class_ids, class_names,
         cv2.waitKey(1)
     else:
         if dtype=='image':
-            cv2.imwrite('output.jpg', image)
+            if ind==-1:
+                cv2.imwrite('original.jpg', image)
+            else:
+                cv2.imwrite(str(ind)+'.jpg', image)
         else:
             writer.write(image)
 

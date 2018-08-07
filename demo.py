@@ -18,14 +18,15 @@ from config import Config
 import model as modellib
 import visualize_cv2 as visualize
 
-NUM_CLS=22
-
 class BagsConfig(Config):
     NAME = "bags"
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
-    NUM_CLASSES = 1 + NUM_CLS  # background + classes
-        
+    
+    def __init__(self, n):
+        self.NUM_CLASSES = 1 + n  # background + classes
+        super().__init__()        
+
 if __name__=='__main__':
 
     import argparse
@@ -41,8 +42,6 @@ if __name__=='__main__':
                         help="Path to weights .h5 file")
     parser.add_argument('--rotation', required=False,
                         help="Angle to rotate video input stream")
-    parser.add_argument('--num_cls', required=True,
-                        help="Number of classes in dataset without BG class")
     parser.add_argument('--video', required=False,
                         metavar="path/to/demo/video",
                         help='Video to play demo on', default=None)
@@ -63,7 +62,10 @@ if __name__=='__main__':
     
     cv2.namedWindow('frame', cv2.WND_PROP_FULLSCREEN)
     
-    config = BagsConfig()
+    with open(args.json_file, 'r') as f:
+        obj = json.load(f)
+        
+    config = BagsConfig(len(obj['classes']))
     config.display()
 
     ROOT_DIR = os.getcwd()
@@ -123,6 +125,42 @@ if __name__=='__main__':
         
         t = 'image' if args.image is not None else 'video'
         
+        #print (r['rois'], r['class_ids'])
+        
+        threshold = 75
+        
+        h_prev, h_prev2, remove = None, None, []
+        for i,x in enumerate(r['class_ids']):
+            if x==17: # Rhythm journal
+                s = r['rois'][i]
+                h,w = s[2]-s[0], s[3]-s[1]
+                if h_prev is None:
+                    h_prev, w_prev, i_prev = h,w,i
+                    
+                if abs(h-h_prev) < threshold and abs(w-w_prev) < threshold:
+                    continue
+                else:
+                    if h_prev2 is None:
+                        h_prev2, w_prev2, i_prev2 = h, w, i 
+                    else:                   
+                        if abs(h-h_prev2) < threshold and abs(w-w_prev2) < threshold:
+                            h_prev, w_prev, i_prev = h_prev2, w_prev2, i_prev2
+                        else:
+                            remove.append(i)
+        for r in list(reversed(remove)):
+            print ("Deleted row ", r)
+            r['class_ids'] = np.delete(r['class_ids'], (r), axis=0)
+            r['rois'] = np.delete(r['rois'], (r), axis=0)
+            r['masks'] = np.delete(r['masks'], (r), axis=0)
+            r['scores'] = np.delete(r['scores'], (r), axis=0)
+        
+        if h_prev2 is not None:
+            print ("Deleted row ", i_prev2)
+            r['class_ids'] = np.delete(r['class_ids'], (i_prev2), axis=0)
+            r['rois'] = np.delete(r['rois'], (i_prev2), axis=0)
+            r['masks'] = np.delete(r['masks'], (i_prev2), axis=0)
+            r['scores'] = np.delete(r['scores'], (i_prev2), axis=0)
+                        
         visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], 
                                     class_names, r['scores'], save=args.save_demo, writer=out, dtype=t)
         if args.image is not None and not args.save_demo or args.image_dir is not None:
