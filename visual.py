@@ -23,14 +23,22 @@ from visualize import display_images
 import model as modellib
 from model import log
 import coco
+import argparse
+
+ap = argparse.ArgumentParser()
+ap.add_argument('-j', '--json_file', required=True, help='Path to dataset JSON file')
+args = ap.parse_args()
 
 dataset = coco.BagsDataset()
-dataset.load_bags()
+dataset.load_bags(args.json_file)
 
 # Must call before using the dataset
 dataset.prepare()
 
-config = BagsConfig()
+with open(args.json_file, 'r') as f:
+    obj = json.load(f)
+
+config = BagsConfig(len(obj['classes']))
 
 def get_ax(rows=1, cols=1, size=16):
     """Return a Matplotlib Axes array to be used in

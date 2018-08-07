@@ -280,6 +280,7 @@ class BagsConfig(Config):
     """
     # Give the configuration a recognizable name
     NAME = "bags"
+
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
     STEPS_PER_EPOCH = 500
@@ -292,11 +293,13 @@ class BagsConfig(Config):
     MEAN_PIXEL = [70.53, 20.56, 48.22]
     BACKBONE='resnet101'
     LEARNING_RATE = 1e-3
+
     USE_MINI_MASK = True
     MAX_GT_INSTANCES = 500
-    
+
     def __init__(self, n):
         NUM_CLASSES = 1 + n 
+        super().__init__()
 
 if __name__ == '__main__':
     import argparse
@@ -334,9 +337,13 @@ if __name__ == '__main__':
     ############################################################
     #  Configurations
     ############################################################
+
+    with open(args.json_file, 'r') as f:
+        obj = json.load(f)
     
+    # Configurations
     if args.command == "train":
-        config = BagsConfig()
+        config = BagsConfig(len(obj['classes']))
     else:
         class InferenceConfig(CocoConfig):
             # Set batch size to 1 since we'll be running inference on
@@ -366,12 +373,12 @@ if __name__ == '__main__':
     if args.command == "train":
         # Training dataset. Use the training set and 35K from the
         # validation set, as as in the Mask RCNN paper.
-        dataset_train = BagsDataset(int(args.num_classes))
+        dataset_train = BagsDataset()
         dataset_train.load_bags(args.json_file)
         dataset_train.prepare()
 
         # Validation dataset
-        dataset_val = BagsDataset(int(args.num_classes))
+        dataset_val = BagsDataset()
         dataset_val.load_bags(args.json_file)
         dataset_val.prepare()
         
@@ -405,7 +412,7 @@ if __name__ == '__main__':
 
     elif args.command == "evaluate":
         # Validation dataset
-        dataset_val = BagsDataset(int(args.num_classes))
+        dataset_val = BagsDataset()
         coco = dataset_val.load_bags(args.json_file)
         dataset_val.prepare()
         print("Running COCO evaluation on {} images.".format(args.limit))
