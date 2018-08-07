@@ -48,6 +48,7 @@ import shutil
 import json
 import cv2
 import glob
+import itertools
 
 from imgaug import augmenters as iaa
 
@@ -95,7 +96,7 @@ class BagsDataset(utils.Dataset):
             imgToAnns[ann['image_id']].append(ann)
             
         # Add images
-        for i, img_path in enumerate([x['file_name'] for x in dataset['images']]):
+        for i, img_path in zip([x['id'] for x in dataset['images']], [x['file_name'] for x in dataset['images']]):
             if os.path.exists(img_path):
                 img = cv2.imread(img_path)
                 self.add_image(
