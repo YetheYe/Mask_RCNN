@@ -435,7 +435,8 @@ class PyramidROIAlign(KE.Layer):
         # column representing the order of pooled boxes
         box_to_level = tf.concat(box_to_level, axis=0)
         box_range = tf.expand_dims(tf.range(tf.shape(box_to_level)[0]), 1)
-        box_to_level = tf.concat([tf.cast(box_to_level, tf.int32), box_range],
+        box_to_level = tf.concat([tf.cast(
+        box_to_level, tf.int32), box_range],
                                  axis=1)
 
         # Rearrange pooled features to match the order of the original boxes
@@ -446,6 +447,8 @@ class PyramidROIAlign(KE.Layer):
             box_to_level)[0]).indices[::-1]
         ix = tf.gather(box_to_level[:, 2], ix)
         pooled = tf.gather(pooled, ix)
+        
+        #print (pooled.get_shape().as_list())
 
         # Re-add the batch dimension
         pooled = tf.expand_dims(pooled, 0)
@@ -1143,6 +1146,36 @@ def mrcnn_bbox_loss_graph(target_bbox, target_class_ids, pred_bbox):
     loss = K.mean(loss)
     return loss
 
+def mrcnn_color_gmm_loss_graph(input_image, target_bbox, target_class_ids, pred_bbox):
+    """Loss for Mask R-CNN Color GMM branch
+    
+    input_image: [ht, wd, channel]
+    target_bbox: [batch, num_rois, (dy, dx, log(dh), log(dw))]
+    target_class_ids: [batch, num_rois]. Integer class IDs.
+    pred_bbox: [batch, num_rois, num_classes, (dy, dx, log(dh), log(dw))]
+    """
+    
+    target_class_ids = K.reshape(target_class_ids, (-1,))
+    target_bbox = K.reshape(target_bbox, (-1, 4))
+    pred_bbox = K.reshape(pred_bbox, (-1, K.int_shape(pred_bbox)[2], 4))
+
+    # Only positive ROIs contribute to the loss. And only
+    # the right class_id of each ROI. Get their indicies.
+    positive_roi_ix = tf.where(target_class_ids > 0)[:, 0]
+    positive_roi_class_ids = tf.cast(
+        tf.gather(target_class_ids, positive_roi_ix), tf.int64)
+    indices = tf.stack([positive_roi_ix, positive_roi_class_ids], axis=1)
+
+    # Gather the deltas (predicted and true) that contribute to loss
+    target_bbox = tf.gather(target_bbox, positive_roi_ix)
+    pred_bbox = tf.gather_nd(pred_bbox, indices)
+
+    tf_gmm = tf.contrib.factorization.GMM(6, model_dir='logs/color_gmm')
+
+    print (target_bbox.get_shape().as_list()[0], pred_bbox.get_shape().as_list()[0])
+    
+    return tf.zeros(1)
+    
 
 def mrcnn_mask_loss_graph(target_masks, target_class_ids, pred_masks):
     """Mask binary cross-entropy loss for the masks head.
@@ -2003,6 +2036,9 @@ class MaskRCNN():
                 [target_bbox, target_class_ids, mrcnn_bbox])
             mask_loss = KL.Lambda(lambda x: mrcnn_mask_loss_graph(*x), name="mrcnn_mask_loss")(
                 [target_mask, target_class_ids, mrcnn_mask])
+            
+            color_loss = KL.Lambda(lambda x: mrcnn_color_gmm_loss_graph(*x), name='mrcnn_color_loss')(
+                [input_image, target_bbox, target_class_ids, mrcnn_bbox])
 
             # Model
             inputs = [input_image, input_image_meta,
