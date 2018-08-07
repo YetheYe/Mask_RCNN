@@ -299,7 +299,7 @@ class BagsConfig(Config):
     MAX_GT_INSTANCES = 500
 
     def __init__(self, n):
-        NUM_CLASSES = 1 + n 
+        self.NUM_CLASSES = 1 + n 
         super().__init__()
 
 if __name__ == '__main__':
@@ -314,8 +314,6 @@ if __name__ == '__main__':
     parser.add_argument('--json_file', required=False,
                         metavar="/path/to/json_file/",
                         help='Path to JSON file')
-    parser.add_argument('--num_cls', required=True,
-                        help="Number of classes in dataset without BG class")
     parser.add_argument('--model', required=True,
                         metavar="/path/to/weights.h5",
                         help="Path to weights .h5 file")
@@ -374,12 +372,12 @@ if __name__ == '__main__':
     if args.command == "train":
         # Training dataset. Use the training set and 35K from the
         # validation set, as as in the Mask RCNN paper.
-        dataset_train = BagsDataset()
+        dataset_train = BagsDataset(len(obj['classes']))
         dataset_train.load_bags(args.json_file)
         dataset_train.prepare()
 
         # Validation dataset
-        dataset_val = BagsDataset()
+        dataset_val = BagsDataset(len(obj['classes']))
         dataset_val.load_bags(args.json_file)
         dataset_val.prepare()
         
