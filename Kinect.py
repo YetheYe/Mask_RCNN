@@ -20,6 +20,7 @@ import matplotlib.patches as patches
 import matplotlib.lines as lines
 from matplotlib.patches import Polygon
 import scipy
+import json
 
 import coco
 import utils
@@ -32,6 +33,8 @@ import freenect
 import cv2
 import frame_convert2
 
+from config import Config
+
 import argparse
 
 from pylab import rcParams
@@ -40,20 +43,15 @@ rcParams['figure.figsize'] = 10, 10
 
 parser = argparse.ArgumentParser(description='Bounding Box Detection or Image Segmentation')
 parser.add_argument("--bbox", default=False, action="store_true" , help="Set for Bounding Box Detection")
+parser.add_argument("--model", required=True, help='Path to model file')
+parser.add_argument("--json_file", required=True, help='Path to dataset JSON file')
 args = parser.parse_args()
 
-#get_ipython().run_line_magic('matplotlib', 'inline')
-
-# Root directory of the project
-ROOT_DIR = os.getcwd()
-
-# Directory to save logs and trained model
-MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 
 # Path to trained weights file
 # Download this file and place in the root of your 
 # project (See README file for details)
-COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
+COCO_MODEL_PATH = args.model
 
 # Directory of images to run detection on
 #IMAGE_DIR = os.path.join(ROOT_DIR, "images")
@@ -71,14 +69,21 @@ COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
 
 # In[2]:
 
+with open(args.json_file, 'r') as f:
+    obj = json.load(f)
 
-class InferenceConfig(coco.CocoConfig):
+class InferenceConfig(Config):
     # Set batch size to 1 since we'll be running inference on
     # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
+    NAME='bags'
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
+    
+    def __init__(self, n):
+        self.NUM_CLASSES = 1 + n
+        super().__init__()
 
-config = InferenceConfig()
+config = InferenceConfig(len(obj['classes']))
 config.display()
 
 
@@ -88,7 +93,7 @@ config.display()
 
 
 # Create model object in inference mode.
-model = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=config)
+model = modellib.MaskRCNN(mode="inference", model_dir=os.path.dirname(args.model), config=config)
 
 # Load weights trained on MS-COCO
 model.load_weights(COCO_MODEL_PATH, by_name=True)
@@ -153,10 +158,11 @@ def apply_mask(image, mask, color, alpha=0.25):
 def get_depth():
     return freenect.sync_get_depth()[0]
 
-vid = cv2.VideoCapture('957_1.mp4')
+vid = cv2.VideoCapture(0)
 
 def get_video():
     ret, image = vid.read()
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return image
 
 def random_colors(N, bright=True):
@@ -195,6 +201,7 @@ def animate(*kwargs):
     #file_names = next(os.walk(IMAGE_DIR))[2]
     
     
+    
     #image = skimage.io.imread(os.path.join(IMAGE_DIR, random.choice(file_names)))
 
     # Run detection
@@ -226,21 +233,18 @@ def animate(*kwargs):
     for i in range(N):
         color = colors[i]
 
-        if args.bbox:
+        # Bounding box
+        if not np.any(boxes[i]):
+            # Skip this instance. Has no bbox. Likely lost in image cropping.
+            continue
+        y1, x1, y2, x2 = boxes[i]
+        p = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=2,
+                              alpha=0.7,
+                              edgecolor=color, facecolor='none')
+        ax.add_patch(p)
+        patches.append(p)
     
-            # Bounding box
-            if not np.any(boxes[i]):
-                # Skip this instance. Has no bbox. Likely lost in image cropping.
-                continue
-            y1, x1, y2, x2 = boxes[i]
-            p = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=2,
-                                  alpha=0.7,
-                                  edgecolor=color, facecolor='none')
-            ax.add_patch(p)
-            patches.append(p)
-    
-        else:
-
+        if not args.bbox:
             # Mask
             mask = masks[:, :, i]
             image = apply_mask(image, mask, color)
@@ -267,7 +271,8 @@ def animate(*kwargs):
         text_actors[i].set_x(x1)
         text_actors[i].set_y(y1+8)
         text_actors[i].set_text(caption)
-    
+        
+        
     image_actor.set_data(image.astype(np.uint8))
     
     return [image_actor] + text_actors[:N]

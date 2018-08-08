@@ -14,6 +14,8 @@ import matplotlib.patches as patches
 import matplotlib.lines as lines
 from matplotlib.patches import Polygon
 
+from model import compute_backbone_shapes
+
 import tensorflow as tf
 
 import utils
@@ -27,6 +29,7 @@ import argparse
 
 ap = argparse.ArgumentParser()
 ap.add_argument('-j', '--json_file', required=True, help='Path to dataset JSON file')
+ap.add_argument('-m', '--model', required=True, help='Path to Mask RCNN model file')
 args = ap.parse_args()
 
 dataset = coco.BagsDataset()
@@ -56,7 +59,7 @@ for i, info in enumerate(dataset.class_info):
     print("{:3}. {:50}".format(i, info['name']))
 
 # Load and display random samples
-image_ids = np.random.choice(dataset.image_ids, 40)
+image_ids = np.random.choice(dataset.image_ids, 4)
 for image_id in image_ids:
     image = dataset.load_image(image_id)
     mask, class_ids = dataset.load_mask(image_id)
@@ -79,15 +82,17 @@ log("bbox", bbox)
 visualize.display_instances(image, bbox, mask, class_ids, dataset.class_names)
 
 
+BACKBONE_SHAPES = compute_backbone_shapes(config, config.IMAGE_SHAPE)
+
 # Generate Anchors
 anchors = utils.generate_pyramid_anchors(config.RPN_ANCHOR_SCALES, 
                                           config.RPN_ANCHOR_RATIOS,
-                                          config.BACKBONE_SHAPES,
+                                          BACKBONE_SHAPES,
                                           config.BACKBONE_STRIDES, 
                                           config.RPN_ANCHOR_STRIDE)
 
 # Print summary of anchors
-num_levels = len(config.BACKBONE_SHAPES)
+num_levels = len(BACKBONE_SHAPES)
 anchors_per_cell = len(config.RPN_ANCHOR_RATIOS)
 print("Count: ", anchors.shape[0])
 print("Scales: ", config.RPN_ANCHOR_SCALES)
@@ -96,18 +101,17 @@ print("Anchors per Cell: ", anchors_per_cell)
 print("Levels: ", num_levels)
 anchors_per_level = []
 for l in range(num_levels):
-    num_cells = config.BACKBONE_SHAPES[l][0] * config.BACKBONE_SHAPES[l][1]
+    num_cells = BACKBONE_SHAPES[l][0] * BACKBONE_SHAPES[l][1]
     anchors_per_level.append(anchors_per_cell * num_cells // config.RPN_ANCHOR_STRIDE**2)
     print("Anchors in Level {}: {}".format(l, anchors_per_level[l]))
     
 ## Visualize anchors of one cell at the center of the feature map of a specific level
 
 # Load and draw random image
-image_id = np.random.choice(dataset.image_ids, 1)[0]
 image, image_meta, _, _, _ = modellib.load_image_gt(dataset, config, image_id)
 fig, ax = plt.subplots(1, figsize=(10, 10))
 ax.imshow(image)
-levels = len(config.BACKBONE_SHAPES)
+levels = len(BACKBONE_SHAPES)
 
 for level in range(levels):
     colors = visualize.random_colors(levels)
@@ -115,12 +119,12 @@ for level in range(levels):
     level_start = sum(anchors_per_level[:level]) # sum of anchors of previous levels
     level_anchors = anchors[level_start:level_start+anchors_per_level[level]]
     print("Level {}. Anchors: {:6}  Feature map Shape: {}".format(level, level_anchors.shape[0], 
-                                                                config.BACKBONE_SHAPES[level]))
-    center_cell = config.BACKBONE_SHAPES[level] // 2
-    center_cell_index = (center_cell[0] * config.BACKBONE_SHAPES[level][1] + center_cell[1])
+                                                                BACKBONE_SHAPES[level]))
+    center_cell = BACKBONE_SHAPES[level] // 2
+    center_cell_index = (center_cell[0] * BACKBONE_SHAPES[level][1] + center_cell[1])
     level_center = center_cell_index * anchors_per_cell 
     center_anchor = anchors_per_cell * (
-        (center_cell[0] * config.BACKBONE_SHAPES[level][1] / config.RPN_ANCHOR_STRIDE**2) \
+        (center_cell[0] * BACKBONE_SHAPES[level][1] / config.RPN_ANCHOR_STRIDE**2) \
         + center_cell[1] / config.RPN_ANCHOR_STRIDE)
     level_center = int(center_anchor)
 
@@ -151,7 +155,7 @@ with tf.device(DEVICE):
                               config=config)
 
 # Or, uncomment to load the last model you trained
-weights_path = sys.argv[2]
+weights_path = args.model
 
 # Load weights
 print("Loading weights ", weights_path)
@@ -180,8 +184,8 @@ log("gt_bbox", gt_bbox)
 log("gt_mask", gt_mask)
 
 # Draw precision-recall curve
-AP, precisions, recalls, overlaps = utils.compute_ap(gt_bbox, gt_class_id, 
-                                          r['rois'], r['class_ids'], r['scores'])
+AP, precisions, recalls, overlaps = utils.compute_ap(gt_bbox, gt_class_id, gt_mask, 
+                                          r['rois'], r['class_ids'], r['scores'], r['masks'])
 visualize.plot_precision_recall(AP, precisions, recalls)
 
 # Grid of ground truth objects and their predictions

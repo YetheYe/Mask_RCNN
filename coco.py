@@ -96,7 +96,8 @@ class BagsDataset(utils.Dataset):
             imgToAnns[ann['image_id']].append(ann)
             
         # Add images
-        for i, img_path in zip([x['id'] for x in dataset['images']], [x['file_name'] for x in dataset['images']]):
+        for img_json in dataset['images']:
+            i, img_path = img_json['id'], img_json['file_name']
             if os.path.exists(img_path):
                 img = cv2.imread(img_path)
                 self.add_image(
@@ -295,7 +296,7 @@ class BagsConfig(Config):
     BACKBONE='resnet101'
     LEARNING_RATE = 1e-3
 
-    USE_MINI_MASK = True
+    USE_MINI_MASK = False
     MAX_GT_INSTANCES = 500
 
     def __init__(self, n):
@@ -344,13 +345,17 @@ if __name__ == '__main__':
     if args.command == "train":
         config = BagsConfig(len(obj['classes']))
     else:
-        class InferenceConfig(CocoConfig):
+        class InferenceConfig():
             # Set batch size to 1 since we'll be running inference on
             # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
             GPU_COUNT = 1
             IMAGES_PER_GPU = 1
             DETECTION_MIN_CONFIDENCE = 0
-        config = InferenceConfig()
+            
+            def __init__(self, n):
+                self.NUM_CLASSES = 1 + n 
+                super().__init__()
+        config = InferenceConfig(len(obj['classes']))
     config.display()
 
     # Create model
