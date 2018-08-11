@@ -31,6 +31,8 @@ import os
 import time
 import numpy as np
 
+from parallel_model import ParallelModel
+
 # Download and install the Python COCO tools from https://github.com/waleedka/coco
 # That's a fork from the original https://github.com/pdollar/coco with a bug
 # fix for Python 3.
@@ -283,7 +285,6 @@ class BagsConfig(Config):
     # Give the configuration a recognizable name
     NAME = "bags"
 
-    GPU_COUNT = 1
     IMAGES_PER_GPU = 1
     STEPS_PER_EPOCH = 500
     VALIDATION_STEPS = 100
@@ -296,11 +297,12 @@ class BagsConfig(Config):
     BACKBONE='resnet101'
     LEARNING_RATE = 1e-3
 
-    USE_MINI_MASK = False
+    USE_MINI_MASK = True
     MAX_GT_INSTANCES = 500
 
-    def __init__(self, n):
+    def __init__(self, n, m=1):
         self.NUM_CLASSES = 1 + n 
+        self.GPU_COUNT = m
         super().__init__()
 
 if __name__ == '__main__':
@@ -328,6 +330,7 @@ if __name__ == '__main__':
                         help='Images to use for evaluation (default=500)')
     parser.add_argument('--augment', required=False, action='store_true', help='add augmentations')
     parser.add_argument('--stage', required=True, default=1, type=int, help='Choose stage of training (1-heads, 2-4+, 3-full)')
+    parser.add_argument('--num_gpus', default=1, type=int, help='Number of GPUs available')
     args = parser.parse_args()
     
     if args.augment:
@@ -343,7 +346,7 @@ if __name__ == '__main__':
     
     # Configurations
     if args.command == "train":
-        config = BagsConfig(len(obj['classes']))
+        config = BagsConfig(len(obj['classes']), args.num_gpus)
     else:
         class InferenceConfig():
             # Set batch size to 1 since we'll be running inference on
@@ -365,7 +368,7 @@ if __name__ == '__main__':
     else:
         model = modellib.MaskRCNN(mode="inference", config=config,
                                   model_dir=args.logs)
-
+   
     # Load weights
     print("Loading weights ", args.model)
     if 'mask_rcnn_coco' in args.model.lower():
