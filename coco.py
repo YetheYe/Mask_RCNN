@@ -74,7 +74,7 @@ DEFAULT_DATASET_YEAR = "2017"
 ############################################################
 
 class BagsDataset(utils.Dataset):
-    def load_bags(self, json_path):
+    def load_bags(self, json_path, split='train'):
         """Load a subset of the COCO dataset.
         dataset_dir: The root directory of the COCO dataset.
         subset: What to load (train, val, minival, valminusminival)
@@ -85,6 +85,7 @@ class BagsDataset(utils.Dataset):
         return_coco: If True, returns the COCO object.
         auto_download: Automatically download and unzip MS-COCO images and annotations
         """
+
         import json 
         with open(json_path, 'r') as f:
             dataset = json.load(f)
@@ -96,7 +97,13 @@ class BagsDataset(utils.Dataset):
         imgToAnns = defaultdict(list)
         for ann in dataset['annotations']:
             imgToAnns[ann['image_id']].append(ann)
-            
+        
+        cent = int(0.98*len(dataset['images']))
+        if split=='train':
+            dataset['images'] = dataset['images'][:cent]
+        else:
+            dataset['images'] = dataset['images'][cent:]
+
         # Add images
         for img_json in dataset['images']:
             i, img_path = img_json['id'], img_json['file_name']
@@ -286,7 +293,7 @@ class BagsConfig(Config):
     NAME = "bags"
 
     IMAGES_PER_GPU = 1
-    STEPS_PER_EPOCH = 500
+    STEPS_PER_EPOCH = 5
     VALIDATION_STEPS = 100
     IMAGE_MIN_DIM = 1024
     IMAGE_MAX_DIM = 1024
@@ -386,7 +393,7 @@ if __name__ == '__main__':
 
         # Validation dataset
         dataset_val = BagsDataset(len(obj['classes']))
-        dataset_val.load_bags(args.json_file)
+        dataset_val.load_bags(args.json_file, "val")
         dataset_val.prepare()
         
         temps = 30
@@ -420,7 +427,7 @@ if __name__ == '__main__':
     elif args.command == "evaluate":
         # Validation dataset
         dataset_val = BagsDataset()
-        coco = dataset_val.load_bags(args.json_file)
+        coco = dataset_val.load_bags(args.json_file, "val")
         dataset_val.prepare()
         print("Running COCO evaluation on {} images.".format(args.limit))
         evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))

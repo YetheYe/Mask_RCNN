@@ -33,7 +33,7 @@ ap.add_argument('-m', '--model', required=True, help='Path to Mask RCNN model fi
 args = ap.parse_args()
 
 dataset = coco.BagsDataset()
-dataset.load_bags(args.json_file)
+dataset.load_bags(args.json_file, "eval")
 
 # Must call before using the dataset
 dataset.prepare()
