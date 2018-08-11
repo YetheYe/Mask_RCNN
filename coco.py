@@ -293,7 +293,7 @@ class BagsConfig(Config):
     NAME = "bags"
 
     IMAGES_PER_GPU = 1
-    STEPS_PER_EPOCH = 5
+    STEPS_PER_EPOCH = 500
     VALIDATION_STEPS = 100
     IMAGE_MIN_DIM = 1024
     IMAGE_MAX_DIM = 1024
