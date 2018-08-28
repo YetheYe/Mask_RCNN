@@ -42,6 +42,7 @@ with open(args.json_file, 'r') as f:
     obj = json.load(f)
 
 config = BagsConfig(len(obj['classes']))
+config.display()
 
 def get_ax(rows=1, cols=1, size=16):
     """Return a Matplotlib Axes array to be used in
@@ -52,7 +53,7 @@ def get_ax(rows=1, cols=1, size=16):
     """
     _, ax = plt.subplots(rows, cols, figsize=(size*cols, size*rows))
     return ax
-
+'''
 print("Image Count: {}".format(len(dataset.image_ids)))
 print("Class Count: {}".format(dataset.num_classes))
 for i, info in enumerate(dataset.class_info):
@@ -64,6 +65,7 @@ for image_id in image_ids:
     image = dataset.load_image(image_id)
     mask, class_ids = dataset.load_mask(image_id)
     visualize.display_top_masks(image, mask, class_ids, dataset.class_names)
+'''
 
 # Load random image and mask.
 image_id = random.choice(dataset.image_ids)
@@ -79,8 +81,7 @@ log("mask", mask)
 log("class_ids", class_ids)
 log("bbox", bbox)
 # Display image and instances
-visualize.display_instances(image, bbox, mask, class_ids, dataset.class_names)
-
+# visualize.display_instances(image, bbox, mask, class_ids, dataset.class_names)
 
 BACKBONE_SHAPES = compute_backbone_shapes(config, config.IMAGE_SHAPE)
 

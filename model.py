@@ -1862,6 +1862,7 @@ class MaskRCNN():
         self.model_dir = model_dir
         self.set_log_dir()
         self.keras_model = self.build(mode=mode, config=config)
+        self.schedfactor = 5
 
     def build(self, mode, config):
         """Build Mask R-CNN architecture.
@@ -2147,6 +2148,14 @@ class MaskRCNN():
         # Update the log directory
         self.set_log_dir(filepath)
 
+    def schedule(self, epoch, lr):
+        
+        if epoch%self.schedfactor == 0 and epoch!=0 and self.schedfactor != 1:
+            self.schedfactor = max(int(self.schedfactor/1.5), 1)
+            return lr*0.1
+        else:
+            return lr
+
     def get_imagenet_weights(self):
         """Downloads ImageNet trained weights from Keras.
         Returns path to weights file.
@@ -2330,6 +2339,7 @@ class MaskRCNN():
                                         histogram_freq=0, write_graph=True, write_images=False),
             keras.callbacks.ModelCheckpoint(self.checkpoint_path,
                                             verbose=0, save_weights_only=True),
+            keras.callbacks.LearningRateScheduler(self.schedule, verbose=1)
         ]
 
         # Train

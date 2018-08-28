@@ -291,14 +291,14 @@ class BagsConfig(Config):
     IMAGE_MIN_DIM = 1024
     IMAGE_MAX_DIM = 1024
     IMAGE_PADDING = True
-    TRAIN_ROIS_PER_IMAGE = 1024
-    ROI_POSITIVE_RATIO = 0.33
-    MEAN_PIXEL = [70.53, 20.56, 48.22]
-    BACKBONE='resnet101'
+    TRAIN_ROIS_PER_IMAGE = 256
+    ROI_POSITIVE_RATIO = 0.2
+    MEAN_PIXEL = np.array([123.7, 116.8, 103.9])
+    BACKBONE='resnet50'
     LEARNING_RATE = 1e-3
 
     USE_MINI_MASK = True
-    MAX_GT_INSTANCES = 500
+    MAX_GT_INSTANCES = 100
 
     def __init__(self, n, m=1):
         self.NUM_CLASSES = 1 + n 
@@ -334,7 +334,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     if args.augment:
-        aug = iaa.OneOf([iaa.CropAndPad(percent=(-0.5, 0.5)), iaa.Fliplr(0.5), iaa.Affine(translate_percent={"x": (-0.4, 0.4), "y": (-0.4, 0.4)})])
+        aug = iaa.OneOf([iaa.Fliplr(0.5), iaa.Flipud(0.5), iaa.Affine(translate_percent={"x": (-0.2, 0.2), "y": (-0.2, 0.2)})])
     else:
         aug = None
     ############################################################
