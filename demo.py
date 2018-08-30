@@ -102,6 +102,8 @@ if __name__=='__main__':
         if args.video is not None:
             ret, image = cap.read()
         elif args.image_dir is not None:
+            if ind == len(img_files):
+                break
             image = cv2.imread(img_files[ind])
             ind+=1
             out = None
