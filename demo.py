@@ -167,7 +167,10 @@ if __name__=='__main__':
         visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], 
                                     class_names, r['scores'], save=args.save_demo, writer=out, dtype=t)
         if args.image is not None and not args.save_demo or args.image_dir is not None:
-            cv2.waitKey()
+            c = cv2.waitKey()
+            if args.image_dir is not None:
+                if c==81:
+                    ind-=2
     if args.video is not None:
         cap.release()
         out.release()
