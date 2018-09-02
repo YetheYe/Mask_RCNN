@@ -294,7 +294,7 @@ class BagsConfig(Config):
     TRAIN_ROIS_PER_IMAGE = 256
     ROI_POSITIVE_RATIO = 0.2
     MEAN_PIXEL = np.array([123.7, 116.8, 103.9])
-    BACKBONE='resnet50'
+    BACKBONE='resnet101'
     LEARNING_RATE = 1e-3
 
     USE_MINI_MASK = True

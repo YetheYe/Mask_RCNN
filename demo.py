@@ -22,7 +22,7 @@ class BagsConfig(Config):
     NAME = "bags"
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
-    BACKBONE='resnet50'   
+    BACKBONE='resnet101'   
     
     def __init__(self, n):
         self.NUM_CLASSES = 1 + n  # background + classes
