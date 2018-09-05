@@ -60,11 +60,11 @@ class Config(object):
     NUM_CLASSES = 1  # Override in sub-classes
 
     # Length of square anchor side in pixels
-    RPN_ANCHOR_SCALES = (32, 64, 128, 256, 512)
+    RPN_ANCHOR_SCALES = (128, 256, 512, 768, 896)
 
     # Ratios of anchors at each cell (width/height)
     # A value of 1 represents a square anchor, and 0.5 is a wide anchor
-    RPN_ANCHOR_RATIOS = [0.5, 1, 2]
+    RPN_ANCHOR_RATIOS = [0.5, 1, 3, 5]
 
     # Anchor stride
     # If 1 then anchors are created for each cell in the backbone feature map.
