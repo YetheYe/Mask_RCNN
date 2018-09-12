@@ -28,6 +28,40 @@ class BagsConfig(Config):
         self.NUM_CLASSES = 1 + n  # background + classes
         super().__init__()        
 
+def iou_filter(bboxes, scores, cls, iou_threshold = 0.5):
+
+    def intersects(r1, r2):
+        return not (r1[2] < r2[0] or r1[0] > r2[2] or r1[3] < r2[1] or r1[1] > r2[3])
+
+    def area(a, b):  # returns None if rectangles don't intersect
+        dx = min(a[2], b[2]) - max(a[0], b[0])
+        dy = min(a[3], b[3]) - max(a[1], b[1])
+        if (dx>=0) and (dy>=0):
+            return dx*dy
+
+    def union(a,b):
+        return (a[2]-a[0])*(a[3]-a[1]) + (b[2]-b[0])*(b[3]-b[1])
+
+    rboxes, rscores, rlabels, ignore, inter = [], [], [], [], False
+    for i in range(len(bboxes)):
+        if i in ignore:
+            continue
+        for j in range(i+1, len(bboxes)):
+            if intersects(bboxes[i], bboxes[j]):
+                iou = area(bboxes[i], bboxes[j])/float(union(bboxes[i], bboxes[j])-area(bboxes[i], bboxes[j]))
+                if scores[i]<scores[j] and iou>iou_threshold:
+                    inter = True
+                elif scores[i]>scores[j] and iou>iou_threshold:
+                    ignore.append(j)
+
+        if not inter:
+            rboxes.append(bboxes[i])
+            rscores.append(scores[i])
+            rlabels.append(cls[i])
+        else:
+            inter = False
+    return np.array(rboxes), np.array(rlabels), np.array(rscores)
+
 if __name__=='__main__':
 
     import argparse
@@ -121,53 +155,30 @@ if __name__=='__main__':
 
         # Run detection
         results = model.detect([image], verbose=1)
-
         # Visualize results
         r = results[0]
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         
         t = 'image' if args.image is not None else 'video'
         
-        #print (r['rois'], r['class_ids'])
+        r['rois'], r['class_ids'], r['scores'] = iou_filter(r['rois'], r['scores'], r['class_ids'])
         
-        threshold = 75
+        cut, crois, cscores, cclasses = 970, [], [], []
+        for (roi, cls), score in zip(zip(r['rois'], r['class_ids']), r['scores']):
+            print (cls)
+            if roi[1] > cut or cls==6: # remove illuminati random detection
+                continue
+            else:
+                crois.append(roi)
+                cscores.append(score)
+                cclasses.append(cls)
         
-        h_prev, h_prev2, remove = None, None, []
-        for i,x in enumerate(r['class_ids']):
-            if x==17: # Rhythm journal
-                s = r['rois'][i]
-                h,w = s[2]-s[0], s[3]-s[1]
-                if h_prev is None:
-                    h_prev, w_prev, i_prev = h,w,i
-                    
-                if abs(h-h_prev) < threshold and abs(w-w_prev) < threshold:
-                    continue
-                else:
-                    if h_prev2 is None:
-                        h_prev2, w_prev2, i_prev2 = h, w, i 
-                    else:                   
-                        if abs(h-h_prev2) < threshold and abs(w-w_prev2) < threshold:
-                            h_prev, w_prev, i_prev = h_prev2, w_prev2, i_prev2
-                        else:
-                            remove.append(i)
-        for r in list(reversed(remove)):
-            print ("Deleted row ", r)
-            r['class_ids'] = np.delete(r['class_ids'], (r), axis=0)
-            r['rois'] = np.delete(r['rois'], (r), axis=0)
-            r['masks'] = np.delete(r['masks'], (r), axis=0)
-            r['scores'] = np.delete(r['scores'], (r), axis=0)
-        
-        if h_prev2 is not None:
-            print ("Deleted row ", i_prev2)
-            r['class_ids'] = np.delete(r['class_ids'], (i_prev2), axis=0)
-            r['rois'] = np.delete(r['rois'], (i_prev2), axis=0)
-            r['masks'] = np.delete(r['masks'], (i_prev2), axis=0)
-            r['scores'] = np.delete(r['scores'], (i_prev2), axis=0)
-                        
+        r['rois'], r['class_ids'], r['scores'] = np.array(crois), np.array(cclasses), np.array(cscores)
+
         visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], 
                                     class_names, r['scores'], save=args.save_demo, writer=out, dtype=t)
         if args.image is not None and not args.save_demo or args.image_dir is not None:
-            c = cv2.waitKey()
+            c = cv2.waitKey(1)
             if args.image_dir is not None:
                 if c==81:
                     ind-=2
