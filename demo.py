@@ -28,7 +28,7 @@ class BagsConfig(Config):
         self.NUM_CLASSES = 1 + n  # background + classes
         super().__init__()        
 
-def iou_filter(bboxes, scores, cls, iou_threshold = 0.5):
+def iou_filter(bboxes, scores, cls, class_names, iou_threshold=0.2):
 
     def intersects(r1, r2):
         return not (r1[2] < r2[0] or r1[0] > r2[2] or r1[3] < r2[1] or r1[1] > r2[3])
@@ -42,6 +42,7 @@ def iou_filter(bboxes, scores, cls, iou_threshold = 0.5):
     def union(a,b):
         return (a[2]-a[0])*(a[3]-a[1]) + (b[2]-b[0])*(b[3]-b[1])
 
+    return_str = ""
     rboxes, rscores, rlabels, ignore, inter = [], [], [], [], False
     for i in range(len(bboxes)):
         if i in ignore:
@@ -59,8 +60,9 @@ def iou_filter(bboxes, scores, cls, iou_threshold = 0.5):
             rscores.append(scores[i])
             rlabels.append(cls[i])
         else:
+            return_str.append(class_names[cls[i]]+" (%.5f)\n"%scores[i])
             inter = False
-    return np.array(rboxes), np.array(rlabels), np.array(rscores)
+    return np.array(rboxes), np.array(rlabels), np.array(rscores), return_str
 
 if __name__=='__main__':
 
@@ -161,12 +163,13 @@ if __name__=='__main__':
         
         t = 'image' if args.image is not None else 'video'
         
-        r['rois'], r['class_ids'], r['scores'] = iou_filter(r['rois'], r['scores'], r['class_ids'])
+        r['rois'], r['class_ids'], r['scores'], ret_str = iou_filter(r['rois'], r['scores'], r['class_ids'], class_names)
         
         cut, crois, cscores, cclasses = 970, [], [], []
         for (roi, cls), score in zip(zip(r['rois'], r['class_ids']), r['scores']):
-            print (cls)
+            
             if roi[1] > cut or cls==6: # remove illuminati random detection
+                #ret_str += "%s (%.5f)\n"%(class_names[cls], score)
                 continue
             else:
                 crois.append(roi)
@@ -176,7 +179,7 @@ if __name__=='__main__':
         r['rois'], r['class_ids'], r['scores'] = np.array(crois), np.array(cclasses), np.array(cscores)
 
         visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], 
-                                    class_names, r['scores'], save=args.save_demo, writer=out, dtype=t)
+                                    class_names, r['scores'], ind=1, save=img_files[ind-1] if args.save_demo else None, writer=out, dtype='image', softmax=ret_str)
         if args.image is not None and not args.save_demo or args.image_dir is not None:
             c = cv2.waitKey(1)
             if args.image_dir is not None:
