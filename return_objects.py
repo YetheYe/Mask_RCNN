@@ -4,27 +4,47 @@ import random
 import math
 import cv2
 import json
-
+import numpy as np
 from config import Config
 
 import model as modellib
 
 class BagsConfig(Config):
-    """Configuration for training on MS COCO.
-    Derives from the base Config class and overrides values specific
-    to the COCO dataset.
-    """
-    # Give the configuration a recognizable name
-    NAME = "bags"
+    def __init__(self, n, m=1, config=None):    
+        
+        if config:
+            self.IMAGES_PER_GPU = 1
+            self.IMAGE_MIN_DIM = config["IMAGE_MIN_DIM"]
+            self.IMAGE_MAX_DIM = config["IMAGE_MAX_DIM"]
+            self.IMAGE_PADDING = config["IMAGE_PADDING"]
+            self.TRAIN_ROIS_PER_IMAGE = config["TRAIN_ROIS_PER_IMAGE"]
+            self.ROI_POSITIVE_RATIO = config["ROI_POSITIVE_RATIO"]
+            self.MEAN_PIXEL = np.array(config["MEAN_PIXEL"])
+            self.BACKBONE= config["BACKBONE"]
 
-    GPU_COUNT = 1
-    IMAGES_PER_GPU = 1
-    NUM_CLASSES = 1 + 12  # background [index: 0] + 1 person class tranfer from COCO [index: 1] + 12 classes
+            self.USE_MINI_MASK = True
+            self.MAX_GT_INSTANCES = config["MAX_GT_INSTANCES"]
+        else:
+            self.IMAGES_PER_GPU = 1
 
-class Hans1:
+        self.NAME = "qick"
+        self.NUM_CLASSES = 1 + n 
+        self.GPU_COUNT = m
+        
+        super().__init__()
 
-    def __init__(self, json_file, model_path):
-        config = BagsConfig()
+class hans2:
+
+    def __init__(self, json_file, model_path, con):
+        
+        with open(json_file, 'r') as f:
+            classes = json.load(f)['classes']
+
+        config = BagsConfig(n=len(classes), m=1, config=con)
+        
+        print (con)
+
+        config.display()
 
         self.model = modellib.MaskRCNN(mode="inference", model_dir=os.path.dirname(model_path), config=config)
         self.model.load_weights(model_path, by_name=True)
@@ -51,5 +71,5 @@ class Hans1:
         return results
 
 if __name__ == '__main__':
-    ai = Hans1('model/CISCO/cisco_new.json', 'model/CISCO/cisco_mask_rcnn_csv.h5')
+    ai = hans2('model/CISCO/cisco_new.json', 'model/CISCO/cisco_mask_rcnn_csv.h5')
     #print(ai.return_objects('1top1.png'))
