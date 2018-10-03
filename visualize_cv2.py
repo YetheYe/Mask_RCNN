@@ -6,7 +6,7 @@ Copyright (c) 2017 Matterport, Inc.
 Licensed under the MIT License (see LICENSE for details)
 Written by Waleed Abdulla
 """
-
+import os
 import random
 import itertools
 import colorsys
@@ -77,7 +77,7 @@ def apply_mask(image, mask, color, alpha=0.5):
 
 def display_instances(image, boxes, masks, class_ids, class_names,
                       scores=None, title="",
-                      figsize=(16, 16), ax=None, save=False, writer=None, dtype='image', ind = -1):
+                      figsize=(16, 16), ax=None, save=False, writer=None, dtype='image', ind = -1, softmax=None):
     """
     boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
     masks: [height, width, num_instances]
@@ -117,9 +117,15 @@ def display_instances(image, boxes, masks, class_ids, class_names,
         x = random.randint(x1, (x1 + x2) // 2)
         caption = "{} {:.3f}".format(label, score) if score else label
 
-        size, base = cv2.getTextSize(caption, cv2.FONT_HERSHEY_COMPLEX_SMALL, .5, 1)
-        image = cv2.rectangle(image, (x1+20, y1+20-size[1]), (x1+20+size[0], y1+20+base), (0, 0, 0), -1)
-        image = cv2.putText(image,caption, (x1+20,y1+20), cv2.FONT_HERSHEY_COMPLEX_SMALL, .5, (255,255,255))
+        if i==0 and softmax:
+            caption += '\n'+softmax
+        
+        y0, dy = y1+20, 20
+        for ix,c in enumerate(caption.split('\n')):
+            y = y0 + dy*ix
+            size, base = cv2.getTextSize(c, cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, 2)
+            image = cv2.rectangle(image, (x1+20, y-size[1]), (x1+20+size[0], y+base), (0, 0, 0), -1)
+            image = cv2.putText(image,c, (x1+20,y), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255,255,255))
         
         # Mask
         mask = masks[:, :, i]
@@ -146,7 +152,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             if ind==-1:
                 cv2.imwrite('original.jpg', image)
             else:
-                cv2.imwrite(str(ind)+'.jpg', image)
+                cv2.imwrite(os.path.basename(save), image)
         else:
             writer.write(image)
 

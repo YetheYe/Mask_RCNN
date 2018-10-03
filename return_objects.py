@@ -42,8 +42,6 @@ class hans2:
 
         config = BagsConfig(n=len(classes), m=1, config=con)
         
-        print (con)
-
         config.display()
 
         self.model = modellib.MaskRCNN(mode="inference", model_dir=os.path.dirname(model_path), config=config)

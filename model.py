@@ -448,8 +448,6 @@ class PyramidROIAlign(KE.Layer):
         ix = tf.gather(box_to_level[:, 2], ix)
         pooled = tf.gather(pooled, ix)
         
-        #print (pooled.get_shape().as_list())
-
         # Re-add the batch dimension
         pooled = tf.expand_dims(pooled, 0)
         return pooled
@@ -706,6 +704,7 @@ def refine_detections_graph(rois, probs, deltas, window, config):
     """
     # Class IDs per ROI
     class_ids = tf.argmax(probs, axis=1, output_type=tf.int32)
+
     # Class probability of the top class of each ROI
     indices = tf.stack([tf.range(probs.shape[0]), class_ids], axis=1)
     class_scores = tf.gather_nd(probs, indices)
@@ -771,6 +770,7 @@ def refine_detections_graph(rois, probs, deltas, window, config):
     class_scores_keep = tf.gather(class_scores, keep)
     num_keep = tf.minimum(tf.shape(class_scores_keep)[0], roi_count)
     top_ids = tf.nn.top_k(class_scores_keep, k=num_keep, sorted=True)[1]
+
     keep = tf.gather(keep, top_ids)
 
     # Arrange output as [N, (y1, x1, y2, x2, class_id, score)]
@@ -1172,8 +1172,6 @@ def mrcnn_color_gmm_loss_graph(input_image, target_bbox, target_class_ids, pred_
 
     tf_gmm = tf.contrib.factorization.GMM(6, model_dir='logs/color_gmm')
 
-    print (target_bbox.get_shape().as_list()[0], pred_bbox.get_shape().as_list()[0])
-    
     return tf.zeros(1)
     
 
@@ -2072,7 +2070,7 @@ class MaskRCNN():
                                               config.MASK_POOL_SIZE,
                                               config.NUM_CLASSES,
                                               train_bn=config.TRAIN_BN)
-
+            
             model = KM.Model([input_image, input_image_meta],
                              [detections, mrcnn_class, mrcnn_bbox,
                                  mrcnn_mask, rpn_rois, rpn_class, rpn_bbox],
@@ -2513,6 +2511,7 @@ class MaskRCNN():
                 "class_ids": final_class_ids,
                 "scores": final_scores,
                 "masks": final_masks,
+                "class_scores": mrcnn_class
             })
         return results
 
