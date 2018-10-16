@@ -165,6 +165,15 @@ if __name__=='__main__':
         
         r['rois'], r['class_ids'], r['scores'], ret_str = iou_filter(r['rois'], r['scores'], r['class_ids'], class_names)
         
+        rois, cls, scr = [], [], []
+        for R, C, S in zip(r['rois'], r['class_ids'], r['scores']):
+            if (R[2]+R[0])<2*275:
+                rois.append(R)
+                cls.append(C)
+                scr.append(S)
+        
+        r['rois'], r['class_ids'], r['scores'] = rois, cls, scr
+
         cut, crois, cscores, cclasses = 970, [], [], []
         for (roi, cls), score in zip(zip(r['rois'], r['class_ids']), r['scores']):
             
