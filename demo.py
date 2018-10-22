@@ -128,6 +128,7 @@ if __name__=='__main__':
         out = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 20, (image.shape[1], image.shape[0]))
     elif args.image_dir is not None:
         img_files=glob.glob(os.path.join(args.image_dir, '*'))
+        img_files = sorted(img_files)
         ret = True
     else:
         image = cv2.imread(args.image)
@@ -165,6 +166,7 @@ if __name__=='__main__':
         
         r['rois'], r['class_ids'], r['scores'], ret_str = iou_filter(r['rois'], r['scores'], r['class_ids'], class_names)
         
+        #Filter monitor by Y-threshold
         rois, cls, scr = [], [], []
         for R, C, S in zip(r['rois'], r['class_ids'], r['scores']):
             if (R[2]+R[0])<2*275:
@@ -188,7 +190,7 @@ if __name__=='__main__':
         r['rois'], r['class_ids'], r['scores'] = np.array(crois), np.array(cclasses), np.array(cscores)
 
         visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], 
-                                    class_names, r['scores'], ind=1, save=img_files[ind-1] if args.save_demo else None, writer=out, dtype='image', softmax=ret_str)
+                                    class_names, r['scores'], ind=ind, save=img_files[ind-1] if args.save_demo else None, writer=out, dtype='image', softmax=ret_str)
         if args.image is not None and not args.save_demo or args.image_dir is not None:
             c = cv2.waitKey(1)
             if args.image_dir is not None:

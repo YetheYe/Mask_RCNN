@@ -77,7 +77,7 @@ def apply_mask(image, mask, color, alpha=0.5):
 
 def display_instances(image, boxes, masks, class_ids, class_names,
                       scores=None, title="",
-                      figsize=(16, 16), ax=None, save=False, writer=None, dtype='image', ind = -1):
+                      figsize=(16, 16), ax=None, save=False, writer=None, dtype='image', ind = -1, softmax=None):
     """
     boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
     masks: [height, width, num_instances]
@@ -144,8 +144,10 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     else:
         if dtype=='image':
             if ind==-1:
+                print ("saving to original.jpg")
                 cv2.imwrite('original.jpg', image)
             else:
+                print ("saving to %d.jpg"%(ind))
                 cv2.imwrite(str(ind)+'.jpg', image)
         else:
             writer.write(image)
