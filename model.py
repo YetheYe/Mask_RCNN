@@ -1833,6 +1833,7 @@ def data_generator(dataset, config, shuffle=True, augment=False, augmentation=No
             raise
         except:
             # Log it and skip the image
+            image_id = image_ids[image_index]
             logging.exception("Error processing image {}".format(
                 dataset.image_info[image_id]))
             error_count += 1
@@ -2265,12 +2266,14 @@ class MaskRCNN():
         # Directory for training logs
         self.log_dir = os.path.join(self.model_dir, "{}{:%Y%m%dT%H%M}".format(
             self.config.NAME.lower(), now))
-
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
         # Path to save after each epoch. Include placeholders that get filled by Keras.
         self.checkpoint_path = os.path.join(self.log_dir, "mask_rcnn_{}_*epoch*.h5".format(
             self.config.NAME.lower()))
         self.checkpoint_path = self.checkpoint_path.replace(
             "*epoch*", "{epoch:04d}")
+
 
     def train(self, train_dataset, val_dataset, learning_rate, epochs, layers,
               augmentation=None):
@@ -2335,6 +2338,7 @@ class MaskRCNN():
         # Train
         log("\nStarting at epoch {}. LR={}\n".format(self.epoch, learning_rate))
         log("Checkpoint Path: {}".format(self.checkpoint_path))
+        print("Checkpoint Path: {}".format(self.checkpoint_path))
         self.set_trainable(layers)
         self.compile(learning_rate, self.config.LEARNING_MOMENTUM)
 

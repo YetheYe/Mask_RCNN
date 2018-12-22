@@ -19,7 +19,7 @@ from matplotlib.patches import Polygon
 import IPython.display
 
 import utils
-
+import cv2
 
 ############################################################
 #  Visualization
@@ -146,7 +146,163 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             ax.add_patch(p)
     ax.imshow(masked_image.astype(np.uint8))
     plt.show()
-    
+def save_instances(image, counting, class_names_ct, cls, class_names_cl, title="",
+                      figsize=(16, 16), ax=None, fname='', divide=1150, bagging_in_left=False, save=False, bagging_upperbound = 2000):
+    """
+    boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
+    masks: [height, width, num_instances]
+    class_ids: [num_instances]
+    class_names: list of class names of the dataset
+    scores: (optional) confidence scores for each box
+    figsize: (optional) the size of the image.
+    """
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    boxes_ct = counting['rois']
+    masks_ct = counting['masks']
+    class_ids_ct = counting['class_ids']
+    scores_ct = counting['scores']
+
+    boxes_cl = cls['rois']
+    masks_cl = cls['masks']
+    class_ids_cl = cls['class_ids']
+    scores_cl = cls['scores']
+
+    # Number of instances
+    N_ct = boxes_ct.shape[0]
+    N_cl = boxes_cl.shape[0]
+    if not N_ct:
+        print("\n*** No counting instances to display *** \n")
+    else:
+        assert boxes_ct.shape[0] == masks_ct.shape[-1] == class_ids_ct.shape[0]
+    if not N_cl:
+        print("\n*** No counting instances to display *** \n")
+    else:
+        assert boxes_cl.shape[0] == masks_cl.shape[-1] == class_ids_cl.shape[0]
+
+    # image = (image.transpose((1, 2, 0)) * 255).astype(np.uint8)
+    image = image.copy()
+
+    #draw counting boxes
+    for i in range(N_ct):
+        if np.any(boxes_ct[i]) and ((not bagging_in_left and boxes_ct[i][1] > divide-100)
+                                    or (bagging_in_left and boxes_ct[i][3] < divide+100)) and boxes_ct[i][2]<bagging_upperbound:
+            y1, x1, y2, x2 = boxes_ct[i]
+            color = (random.randint(0,255),random.randint(0,255),random.randint(0,255))
+
+            # Bounding box, continue if no box, or not in bagging area
+            # could be refined for better performance
+            cv2.rectangle(image, (x1, y1), (x2, y2), color, thickness=2)
+            cv2.putText(image, class_names_ct[class_ids_ct[i]] + '  ' + str(scores_ct[i]), (x1,y2), cv2.FONT_HERSHEY_COMPLEX , 1,
+                        (255,255,255), thickness=1)
+
+    for j in range(N_cl):
+        if np.any(boxes_cl[j]) and ((not bagging_in_left and boxes_cl[j][3] < divide+30)
+                                    or (bagging_in_left and boxes_cl[j][1] > divide-30)):
+            y1, x1, y2, x2 = boxes_cl[j]
+            color = (random.randint(0,255),random.randint(0,255),random.randint(0,255))
+
+            # Bounding box, continue if no box, or not in bagging area
+            # could be refined for better performance
+            cv2.rectangle(image, (x1, y1), (x2, y2), color, thickness=2)
+            cv2.putText(image, class_names_cl[class_ids_cl[j]] + '  ' + str(scores_cl[j]), (x1,y1), cv2.FONT_HERSHEY_COMPLEX , 1,
+                        (255,255,255), thickness=0)
+    if not save:
+        cv2.imshow(image)
+    else:
+        cv2.imwrite(fname, image)
+
+def _save_instances(image, cls, class_names, fname='', save=True):
+
+    """
+    boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
+    masks: [height, width, num_instances]
+    class_ids: [num_instances]
+    class_names: list of class names of the dataset
+    scores: (optional) confidence scores for each box
+    figsize: (optional) the size of the image.
+    """
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    boxes = cls['rois']
+    masks = cls['masks']
+    class_ids = cls['class_ids']
+    scores = cls['scores']
+    # Number of instances
+    N = boxes.shape[0]
+    if not N:
+        print("\n*** No counting instances to display *** \n")
+    else:
+        assert boxes.shape[0] == masks.shape[-1] == class_ids.shape[0]
+
+    # Generate random colors
+
+    # Show area outside image boundaries.
+    # height, width = image.shape[:2]
+
+    # image = (image.transpose((1, 2, 0)) * 255).astype(np.uint8)
+    image = image.copy()
+    #draw counting boxes
+    for i in range(N):
+        if np.any(boxes[i]):
+            y1, x1, y2, x2 = boxes[i]
+            color = (random.randint(0,255),random.randint(0,255),random.randint(0,255))
+            # Bounding box, continue if no box, or not in bagging area
+            # could be refined for better performance
+            cv2.rectangle(image, (x1, y1), (x2, y2), color, thickness=2)
+            cv2.putText(image, str(scores[i])+ '  ' + class_names[class_ids[i]] , (x1,y2), cv2.FONT_HERSHEY_COMPLEX , 0.5,
+                        (255,255,255), thickness=1)
+    if not save:
+        cv2.imshow(image)
+    else:
+        print(fname)
+        cv2.imwrite(fname, image)
+
+def save_still(image, counting, class_names_ct, title="",
+                      figsize=(16, 16), ax=None, fname='', divide=1150, bagging_in_left=False, save=False, bagging_upperbound = 2000):
+    """
+    boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
+    masks: [height, width, num_instances]
+    class_ids: [num_instances]
+    class_names: list of class names of the dataset
+    scores: (optional) confidence scores for each box
+    figsize: (optional) the size of the image.
+    """
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    boxes_ct = counting['rois']
+    masks_ct = counting['masks']
+    class_ids_ct = counting['class_ids']
+    scores_ct = counting['scores']
+    # Number of instances
+    N_ct = boxes_ct.shape[0]
+    if not N_ct:
+        print("\n*** No counting instances to display *** \n")
+    else:
+        assert boxes_ct.shape[0] == masks_ct.shape[-1] == class_ids_ct.shape[0]
+
+    # Generate random colors
+    colors = random_colors(N_ct)
+
+    # Show area outside image boundaries.
+    # height, width = image.shape[:2]
+
+    # image = (image.transpose((1, 2, 0)) * 255).astype(np.uint8)
+    image = image.copy()
+
+    masked_image = image.astype(np.uint32).copy()
+    #draw counting boxes
+    for i in range(N_ct):
+        if np.any(boxes_ct[i]) and ((not bagging_in_left and boxes_ct[i][1] > divide-100)
+                                    or (bagging_in_left and boxes_ct[i][3] < divide+100)) and boxes_ct[i][2]<bagging_upperbound:
+            y1, x1, y2, x2 = boxes_ct[i]
+            color = (random.randint(0,255),random.randint(0,255),random.randint(0,255))
+            # Bounding box, continue if no box, or not in bagging area
+            # could be refined for better performance
+            cv2.rectangle(image, (x1, y1), (x2, y2), color, thickness=2)
+            cv2.putText(image, class_names_ct[class_ids_ct[i]] + '  ' + str(scores_ct[i]), (x1,y2), cv2.FONT_HERSHEY_COMPLEX , 1,
+                        color, thickness=1)
+    if not save:
+        cv2.imshow(image)
+    else:
+        cv2.imwrite(fname, image)
 
 def draw_rois(image, rois, refined_rois, mask, class_ids, class_names, limit=10):
     """

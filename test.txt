@@ -1,0 +1,6 @@
+{'height': 3024, 'width': 4032, 'file_name': '/home/ye/gp/floor1_bin/image-70.jpg', 'id': 70}
+{'height': 4032, 'width': 3024, 'file_name': '/home/ye/gp/floor1_bin/image-43.jpg', 'id': 43}
+{'height': 4032, 'width': 3024, 'file_name': '/home/ye/gp/floor1_bin/image-57.jpg', 'id': 57}
+{'height': 4032, 'width': 3024, 'file_name': '/home/ye/gp/floor1_bin/image-15.jpg', 'id': 15}
+{'height': 4032, 'width': 3024, 'file_name': '/home/ye/gp/floor1_bin/image-31.jpg', 'id': 31}
+{'height': 4032, 'width': 3024, 'file_name': '/home/ye/gp/floor1_bin/image-64.jpg', 'id': 64}

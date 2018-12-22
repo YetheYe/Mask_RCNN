@@ -1,0 +1,36 @@
+nohup: ignoring input
+Using TensorFlow backend.
+WARNING:tensorflow:From /home/ye/.local/lib/python3.5/site-packages/tensorflow/contrib/learn/python/learn/estimators/estimator.py:1180: BaseEstimator.__init__ (from tensorflow.contrib.learn.python.learn.estimators.estimator) is deprecated and will be removed in a future version.
+Instructions for updating:
+Please replace uses of any Estimator from tf.contrib.learn with an Estimator from tf.estimator.*
+WARNING:tensorflow:From /home/ye/.local/lib/python3.5/site-packages/tensorflow/contrib/learn/python/learn/estimators/estimator.py:428: RunConfig.__init__ (from tensorflow.contrib.learn.python.learn.estimators.run_config) is deprecated and will be removed in a future version.
+Instructions for updating:
+When switching to tf.estimator.Estimator, use tf.estimator.RunConfig instead.
+2018-12-04 23:16:05.134007: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+2018-12-04 23:16:06.858491: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:964] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2018-12-04 23:16:06.859139: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1432] Found device 0 with properties: 
+name: Tesla P100-PCIE-16GB major: 6 minor: 0 memoryClockRate(GHz): 1.3285
+pciBusID: 0000:00:05.0
+totalMemory: 15.90GiB freeMemory: 15.61GiB
+2018-12-04 23:16:06.993892: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:964] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2018-12-04 23:16:06.994660: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1432] Found device 1 with properties: 
+name: Tesla P100-PCIE-16GB major: 6 minor: 0 memoryClockRate(GHz): 1.3285
+pciBusID: 0000:00:06.0
+totalMemory: 15.90GiB freeMemory: 15.61GiB
+2018-12-04 23:16:07.127378: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:964] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2018-12-04 23:16:07.127927: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1432] Found device 2 with properties: 
+name: Tesla P100-PCIE-16GB major: 6 minor: 0 memoryClockRate(GHz): 1.3285
+pciBusID: 0000:00:07.0
+totalMemory: 15.90GiB freeMemory: 15.61GiB
+2018-12-04 23:16:07.129383: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1511] Adding visible gpu devices: 0, 1, 2
+2018-12-04 23:16:08.185395: I tensorflow/core/common_runtime/gpu/gpu_device.cc:982] Device interconnect StreamExecutor with strength 1 edge matrix:
+2018-12-04 23:16:08.185448: I tensorflow/core/common_runtime/gpu/gpu_device.cc:988]      0 1 2 
+2018-12-04 23:16:08.185455: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1001] 0:   N N N 
+2018-12-04 23:16:08.185460: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1001] 1:   N N Y 
+2018-12-04 23:16:08.185464: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1001] 2:   N Y N 
+2018-12-04 23:16:08.186372: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 15127 MB memory) -> physical GPU (device: 0, name: Tesla P100-PCIE-16GB, pci bus id: 0000:00:05.0, compute capability: 6.0)
+2018-12-04 23:16:08.186922: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:1 with 15127 MB memory) -> physical GPU (device: 1, name: Tesla P100-PCIE-16GB, pci bus id: 0000:00:06.0, compute capability: 6.0)
+2018-12-04 23:16:08.187365: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1115] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:2 with 15127 MB memory) -> physical GPU (device: 2, name: Tesla P100-PCIE-16GB, pci bus id: 0000:00:07.0, compute capability: 6.0)
+WARNING:tensorflow:From /home/ye/gp/Mask_RCNN/model.py:2183: calling reduce_mean (from tensorflow.python.ops.math_ops) with keep_dims is deprecated and will be removed in a future version.
+Instructions for updating:
+keep_dims is deprecated, use keepdims instead

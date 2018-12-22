@@ -30,7 +30,6 @@ Usage: import the module (see Jupyter notebooks for examples), or run from
 import os
 import time
 import numpy as np
-import random
 
 from parallel_model import ParallelModel
 
@@ -75,7 +74,7 @@ DEFAULT_DATASET_YEAR = "2017"
 ############################################################
 
 class BagsDataset(utils.Dataset):
-    def load_bags(self, json_path, dataset, split='train'):
+    def load_bags(self, json_path, split='train'):
         """Load a subset of the COCO dataset.
         dataset_dir: The root directory of the COCO dataset.
         subset: What to load (train, val, minival, valminusminival)
@@ -87,8 +86,10 @@ class BagsDataset(utils.Dataset):
         auto_download: Automatically download and unzip MS-COCO images and annotations
         """
 
-        coco = COCO(json_path)
-        #coco = COCO("{}/annotations/instances_{}{}.json".format(dataset_dir, subset, year))
+        import json 
+        with open(json_path, 'r') as f:
+            dataset = json.load(f)
+        
         # Add classes
         for i, cls in enumerate(dataset['classes']):
             self.add_class("bags", i+1, cls)
@@ -96,20 +97,13 @@ class BagsDataset(utils.Dataset):
         imgToAnns = defaultdict(list)
         for ann in dataset['annotations']:
             imgToAnns[ann['image_id']].append(ann)
-        train = int(0.8*len(dataset['images']))
-        print(train)
-        val = int(0.9*len(dataset['images']))
-        print(val)
-        with open('test.txt', 'w') as f:
-            for item in dataset['images'][val:]:
-                f.write(str(item)+'\n')
+        
+        cent = int(0.98*len(dataset['images']))
         if split=='train':
-            dataset['images'] = dataset['images'][:train]
+            dataset['images'] = dataset['images'][:cent]
         else:
-            dataset['images'] = dataset['images'][train:]
-        with open(split+'.txt', 'w') as f:
-            for item in dataset['images']:
-                f.write(str(item)+'\n')
+            dataset['images'] = dataset['images'][cent:]
+
         # Add images
         for img_json in dataset['images']:
             i, img_path = img_json['id'], img_json['file_name']
@@ -121,7 +115,7 @@ class BagsDataset(utils.Dataset):
                     width=img.shape[1],
                     height=img.shape[0],
                     annotations=imgToAnns[i])
-        return coco
+        
    
     def load_mask(self, image_id):
         """Load instance masks for the given image.
@@ -227,7 +221,7 @@ def build_coco_results(dataset, image_ids, rois, class_ids, scores, masks):
 
             result = {
                 "image_id": image_id,
-                "category_id": dataset.get_source_class_id(class_id, "bags"),
+                "category_id": dataset.get_source_class_id(class_id, "coco"),
                 "bbox": [bbox[1], bbox[0], bbox[3] - bbox[1], bbox[2] - bbox[0]],
                 "score": score,
                 "segmentation": maskUtils.encode(np.asfortranarray(mask))
@@ -305,16 +299,12 @@ class BagsConfig(Config):
     IMAGE_MAX_DIM = 1024
     IMAGE_PADDING = True
     TRAIN_ROIS_PER_IMAGE = 1024
-    ROI_POSITIVE_RATIO = 0.33
-    RPN_ANCHOR_SCALES = (64, 128, 256, 512)
+    RPN_ANCHOR_SCALES = (128, 256, 512)
     RPN_ANCHOR_RATIOS = [0.33, 1, 3]
-    RPN_NMS_THRESHOLD = 0.7
-    #MEAN_PIXEL = [107.44412338, 103.28208506, 102.07552611]
-    MEAN_PIXEL = [113.4660893, 108.65660642, 100.38982423]
+    ROI_POSITIVE_RATIO = 0.33
+    MEAN_PIXEL = [70.53, 20.56, 48.22]
     BACKBONE='resnet101'
-    LEARNING_RATE = 1e-3
-    LEARNING_MOMENTUM = 0.9
-    WEIGHT_DECAY = 0.0001
+    LEARNING_RATE = 1e-4
 
     USE_MINI_MASK = True
     MAX_GT_INSTANCES = 500
@@ -350,7 +340,6 @@ if __name__ == '__main__':
     parser.add_argument('--augment', required=False, action='store_true', help='add augmentations')
     parser.add_argument('--stage', required=False, default=1, type=int, help='Choose stage of training (1-heads, 2-4+, 3-full)')
     parser.add_argument('--num_gpus', default=1, type=int, help='Number of GPUs available')
-    parser.add_argument('--lr', default=0, type=float, help='Learning rate')
     args = parser.parse_args()
     
     if args.augment:
@@ -367,13 +356,10 @@ if __name__ == '__main__':
     # Configurations
     if args.command == "train":
         config = BagsConfig(len(obj['classes']), args.num_gpus)
-        if args.lr != 0:
-            config.LEARNING_RATE = args.lr
     else:
-        class InferenceConfig(Config):
+        class InferenceConfig():
             # Set batch size to 1 since we'll be running inference on
             # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
-            NAME = ''
             GPU_COUNT = 1
             IMAGES_PER_GPU = 1
             DETECTION_MIN_CONFIDENCE = 0
@@ -388,7 +374,6 @@ if __name__ == '__main__':
     if args.command == "train":
         model = modellib.MaskRCNN(mode="training", config=config,
                                   model_dir=args.logs)
-        print(config.LEARNING_RATE)
     else:
         model = modellib.MaskRCNN(mode="inference", config=config,
                                   model_dir=args.logs)
@@ -399,21 +384,18 @@ if __name__ == '__main__':
         model.load_weights(args.model, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
     else:
         model.load_weights(args.model, by_name=True)
-    import json
+
     # Train or evaluate
     if args.command == "train":
         # Training dataset. Use the training set and 35K from the
         # validation set, as as in the Mask RCNN paper.
-        with open(args.json_file, 'r') as f:
-            dataset = json.load(f)
-        random.shuffle(dataset['images'])
         dataset_train = BagsDataset(len(obj['classes']))
-        dataset_train.load_bags(args.json_file, dataset)
+        dataset_train.load_bags(args.json_file)
         dataset_train.prepare()
 
         # Validation dataset
         dataset_val = BagsDataset(len(obj['classes']))
-        dataset_val.load_bags(args.json_file, dataset, "val")
+        dataset_val.load_bags(args.json_file, "val")
         dataset_val.prepare()
         
         temps = 30
@@ -431,7 +413,7 @@ if __name__ == '__main__':
             print("Training 4+ layers")
             model.train(dataset_train, dataset_val,
                         learning_rate=config.LEARNING_RATE / 10,
-                        epochs=temps+30,
+                        epochs=temps+40,
                         layers='4+',
                         augmentation=aug)
         else:
@@ -440,16 +422,14 @@ if __name__ == '__main__':
             print("Fine tune all layers")
             model.train(dataset_train, dataset_val,
                         learning_rate=0.0001,
-                        epochs=temps+55,
+                        epochs=temps+40+15,
                         layers='all',
                         augmentation=aug)
 
     elif args.command == "evaluate":
         # Validation dataset
         dataset_val = BagsDataset()
-        with open(args.json_file, 'r') as f:
-            dataset_eval = json.load(f)
-        coco = dataset_val.load_bags(dataset_eval, "val")
+        coco = dataset_val.load_bags(args.json_file, "val")
         dataset_val.prepare()
         print("Running COCO evaluation on {} images.".format(args.limit))
         evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))
